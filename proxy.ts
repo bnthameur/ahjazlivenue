@@ -90,6 +90,25 @@ export async function proxy(request: NextRequest) {
             return NextResponse.redirect(url);
         }
 
+        if (user && isProtectedRoute) {
+            const locale = request.cookies.get('NEXT_LOCALE')?.value || 'en';
+
+            // If this is an admin path, enforce admin role
+            if (pathname.includes('/admin')) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+
+                if (!profile || profile.role !== 'admin') {
+                    const url = request.nextUrl.clone();
+                    url.pathname = `/${locale}/dashboard`;
+                    return NextResponse.redirect(url);
+                }
+            }
+        }
+
         // Run i18n middleware and merge Supabase cookies
         const i18nResponse = handleI18n(request);
         const supabaseCookies = response.cookies.getAll();
