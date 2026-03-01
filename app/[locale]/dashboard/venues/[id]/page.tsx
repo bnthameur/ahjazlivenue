@@ -1,0 +1,844 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from '@/i18n/navigation';
+import { useParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { uploadVenueImages } from '@/lib/supabase/storage';
+import { formatBytes } from '@/lib/media-optimizer';
+import {
+    Building2, PartyPopper, Users, TreeDeciduous, Home, Hotel, Utensils, Moon,
+    Upload, X, Check, ChevronRight, MapPin, Phone, Mail, Facebook, Instagram,
+    Camera, Sparkles, Car, Wind, Speaker, Lightbulb, ChefHat, Wifi, Accessibility,
+    Music, Flower2, Waves, Sun, ImageIcon, Loader2, CheckCircle2, Star,
+    Save, Eye, AlertCircle, ArrowLeft, Trash2
+} from 'lucide-react';
+
+// --- Types & Constants ---
+
+type Tab = 'overview' | 'details' | 'photos' | 'contact';
+
+const categories = [
+    { id: 'wedding-hall', icon: Building2, label: 'Wedding Hall', color: 'rose' },
+    { id: 'event-salon', icon: PartyPopper, label: 'Event Salon', color: 'purple' },
+    { id: 'conference-room', icon: Users, label: 'Conference Room', color: 'blue' },
+    { id: 'garden-outdoor', icon: TreeDeciduous, label: 'Garden/Outdoor', color: 'green' },
+    { id: 'villa', icon: Home, label: 'Villa', color: 'orange' },
+    { id: 'hotel-ballroom', icon: Hotel, label: 'Hotel Ballroom', color: 'indigo' },
+    { id: 'restaurant', icon: Utensils, label: 'Restaurant', color: 'amber' },
+    { id: 'rooftop', icon: Moon, label: 'Rooftop', color: 'sky' },
+] as const;
+
+const wilayas = [
+    'Adrar', 'Chlef', 'Laghouat', 'Oum El Bouaghi', 'Batna', 'Béjaïa', 'Biskra', 'Béchar',
+    'Blida', 'Bouira', 'Tamanrasset', 'Tébessa', 'Tlemcen', 'Tiaret', 'Tizi Ouzou', 'Algiers',
+    'Djelfa', 'Jijel', 'Sétif', 'Saïda', 'Skikda', 'Sidi Bel Abbès', 'Annaba', 'Guelma',
+    'Constantine', 'Médéa', 'Mostaganem', "M'Sila", 'Mascara', 'Ouargla', 'Oran', 'El Bayadh',
+    'Illizi', 'Bordj Bou Arréridj', 'Boumerdès', 'El Tarf', 'Tindouf', 'Tissemsilt', 'El Oued',
+    'Khenchela', 'Souk Ahras', 'Tipaza', 'Mila', 'Aïn Defla', 'Naama', 'Aïn Témouchent',
+    'Ghardaïa', 'Relizane', 'El M\'Ghair', 'El Meniaa', 'Ouled Djellal', 'Bordj Baji Mokhtar',
+    'Béni Abbès', 'Timimoun', 'Touggourt', 'Djanet', 'In Salah', 'In Guezzam'
+];
+
+const amenitiesList = [
+    { name: 'Parking', icon: Car },
+    { name: 'Air Conditioning', icon: Wind },
+    { name: 'Sound System', icon: Speaker },
+    { name: 'Lighting', icon: Lightbulb },
+    { name: 'Catering', icon: ChefHat },
+    { name: 'Wi-Fi', icon: Wifi },
+    { name: 'Wheelchair Access', icon: Accessibility },
+    { name: 'Dance Floor', icon: Music },
+    { name: 'Garden', icon: Flower2 },
+    { name: 'Pool', icon: Waves },
+    { name: 'Terrace', icon: Sun },
+    { name: 'Stage', icon: Star },
+];
+
+// --- Components ---
+
+const TabButton = ({ 
+    active, 
+    onClick, 
+    icon: Icon, 
+    label,
+    badge
+}: { 
+    active: boolean; 
+    onClick: () => void; 
+    icon: any; 
+    label: string;
+    badge?: number;
+}) => (
+    <button
+        onClick={onClick}
+        className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-sm transition-all ${
+            active 
+                ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' 
+                : 'text-slate-600 hover:bg-slate-100'
+        }`}
+    >
+        <Icon className="w-4 h-4" />
+        {label}
+        {badge !== undefined && badge > 0 && (
+            <span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${
+                active ? 'bg-white/20' : 'bg-primary-100 text-primary-700'
+            }`}>
+                {badge}
+            </span>
+        )}
+    </button>
+);
+
+const SectionCard = ({ 
+    title, 
+    description, 
+    children,
+    action
+}: { 
+    title: string; 
+    description?: string; 
+    children: React.ReactNode;
+    action?: React.ReactNode;
+}) => (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div>
+                <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
+                {description && <p className="text-sm text-slate-500 mt-0.5">{description}</p>}
+            </div>
+            {action}
+        </div>
+        <div className="p-6">
+            {children}
+        </div>
+    </div>
+);
+
+const FormField = ({
+    label,
+    required,
+    children,
+    help
+}: {
+    label: string;
+    required?: boolean;
+    children: React.ReactNode;
+    help?: string;
+}) => (
+    <div className="space-y-2">
+        <label className="block text-sm font-medium text-slate-700">
+            {label}
+            {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+        {children}
+        {help && <p className="text-xs text-slate-500">{help}</p>}
+    </div>
+);
+
+const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+    <input
+        {...props}
+        className={`w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all ${props.className || ''}`}
+    />
+);
+
+const TextArea = (props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
+    <textarea
+        {...props}
+        className={`w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all resize-none ${props.className || ''}`}
+    />
+);
+
+const CategoryCard = ({ 
+    category, 
+    selected, 
+    onClick 
+}: { 
+    category: typeof categories[number]; 
+    selected: boolean; 
+    onClick: () => void;
+}) => {
+    const Icon = category.icon;
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`group p-4 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-2 ${
+                selected 
+                    ? 'border-primary-500 bg-primary-50 text-primary-700' 
+                    : 'border-slate-100 hover:border-slate-200 bg-white text-slate-600'
+            }`}
+        >
+            <Icon className="w-6 h-6" strokeWidth={1.5} />
+            <span className="text-xs font-medium text-center">{category.label}</span>
+        </button>
+    );
+};
+
+const AmenityTag = ({ 
+    amenity, 
+    selected, 
+    onClick 
+}: { 
+    amenity: typeof amenitiesList[number]; 
+    selected: boolean; 
+    onClick: () => void;
+}) => {
+    const Icon = amenity.icon;
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all ${
+                selected 
+                    ? 'bg-primary-600 text-white' 
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+        >
+            <Icon className="w-3.5 h-3.5" />
+            {amenity.name}
+        </button>
+    );
+};
+
+// --- Main Component ---
+
+export default function EditVenuePage() {
+    const router = useRouter();
+    const params = useParams();
+    const id = params?.id as string;
+    const supabase = createClient();
+    
+    const [activeTab, setActiveTab] = useState<Tab>('overview');
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [hasChanges, setHasChanges] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
+    
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        category: '',
+        location: '',
+        address: '',
+        capacity_min: '',
+        capacity_max: '',
+        price_range_min: '',
+        price_range_max: '',
+        phone: '',
+        whatsapp: '',
+        email: '',
+        facebook_url: '',
+        instagram_url: '',
+        amenities: [] as string[],
+        images: [] as string[],
+        status: 'pending',
+    });
+
+    // Load venue data
+    useEffect(() => {
+        const fetchVenue = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('venues')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+                if (data) {
+                    setFormData({
+                        name: data.name || '',
+                        description: data.description || '',
+                        category: data.category || '',
+                        location: data.location || '',
+                        address: data.address || '',
+                        capacity_min: data.capacity_min?.toString() || '',
+                        capacity_max: data.capacity_max?.toString() || '',
+                        price_range_min: data.price_min?.toString() || '',
+                        price_range_max: data.price_max?.toString() || '',
+                        phone: data.phone || '',
+                        whatsapp: data.whatsapp || '',
+                        email: data.contact_email || '',
+                        facebook_url: data.facebook_url || '',
+                        instagram_url: data.instagram_url || '',
+                        amenities: data.amenities || [],
+                        images: data.images || [],
+                        status: data.status || 'pending',
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching venue:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) fetchVenue();
+    }, [id]);
+
+    const updateField = useCallback((field: string, value: string | string[]) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+        setHasChanges(true);
+    }, []);
+
+    const toggleAmenity = useCallback((amenity: string) => {
+        setFormData(prev => ({
+            ...prev,
+            amenities: prev.amenities.includes(amenity)
+                ? prev.amenities.filter(a => a !== amenity)
+                : [...prev.amenities, amenity]
+        }));
+        setHasChanges(true);
+    }, []);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        
+        const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+        if (!files.length) return;
+
+        setUploading(true);
+        try {
+            const results = await uploadVenueImages(files, id, () => {});
+            setFormData(prev => ({
+                ...prev,
+                images: [...prev.images, ...results.map(r => r.publicUrl)]
+            }));
+            setHasChanges(true);
+        } catch (error: any) {
+            alert(`Error uploading: ${error.message}`);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const removeImage = (idx: number) => {
+        setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
+        setHasChanges(true);
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const { error } = await supabase
+                .from('venues')
+                .update({
+                    name: formData.name,
+                    description: formData.description,
+                    category: formData.category,
+                    location: formData.location,
+                    address: formData.address,
+                    capacity_min: parseInt(formData.capacity_min) || 0,
+                    capacity_max: parseInt(formData.capacity_max) || 0,
+                    price_min: parseFloat(formData.price_range_min) || 0,
+                    price_max: parseFloat(formData.price_range_max) || 0,
+                    phone: formData.phone,
+                    whatsapp: formData.whatsapp,
+                    contact_email: formData.email,
+                    facebook_url: formData.facebook_url,
+                    instagram_url: formData.instagram_url,
+                    amenities: formData.amenities,
+                    images: formData.images,
+                })
+                .eq('id', id);
+
+            if (error) throw error;
+            setHasChanges(false);
+            // Show success toast or notification here
+        } catch (error: any) {
+            alert(`Error saving: ${error.message}`);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+            </div>
+        );
+    }
+
+    // --- Tab Content ---
+
+    const renderOverviewTab = () => (
+        <div className="space-y-6">
+            <SectionCard 
+                title="Basic Information" 
+                description="Essential details about your venue"
+            >
+                <div className="space-y-4">
+                    <FormField label="Venue Name" required>
+                        <Input
+                            value={formData.name}
+                            onChange={(e) => updateField('name', e.target.value)}
+                            placeholder="e.g., Le Grand Palace"
+                        />
+                    </FormField>
+
+                    <FormField label="Category" required>
+                        <div className="grid grid-cols-4 gap-2">
+                            {categories.map((cat) => (
+                                <CategoryCard
+                                    key={cat.id}
+                                    category={cat}
+                                    selected={formData.category === cat.id}
+                                    onClick={() => updateField('category', cat.id)}
+                                />
+                            ))}
+                        </div>
+                    </FormField>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Wilaya" required>
+                            <select
+                                value={formData.location}
+                                onChange={(e) => updateField('location', e.target.value)}
+                                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            >
+                                <option value="">Select Wilaya</option>
+                                {wilayas.map((w) => (
+                                    <option key={w} value={w}>{w}</option>
+                                ))}
+                            </select>
+                        </FormField>
+                        <FormField label="Address">
+                            <Input
+                                value={formData.address}
+                                onChange={(e) => updateField('address', e.target.value)}
+                                placeholder="Street address"
+                            />
+                        </FormField>
+                    </div>
+
+                    <FormField label="Description" required help="Describe what makes your venue special">
+                        <TextArea
+                            value={formData.description}
+                            onChange={(e) => updateField('description', e.target.value)}
+                            placeholder="Tell potential customers about your venue..."
+                            rows={4}
+                        />
+                    </FormField>
+                </div>
+            </SectionCard>
+        </div>
+    );
+
+    const renderDetailsTab = () => (
+        <div className="space-y-6">
+            <SectionCard title="Capacity & Pricing" description="Set your venue capacity and price range">
+                <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                        <h4 className="font-medium text-slate-900">Guest Capacity</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                            <FormField label="Minimum">
+                                <Input
+                                    type="number"
+                                    value={formData.capacity_min}
+                                    onChange={(e) => updateField('capacity_min', e.target.value)}
+                                    placeholder="50"
+                                />
+                            </FormField>
+                            <FormField label="Maximum">
+                                <Input
+                                    type="number"
+                                    value={formData.capacity_max}
+                                    onChange={(e) => updateField('capacity_max', e.target.value)}
+                                    placeholder="300"
+                                />
+                            </FormField>
+                        </div>
+                    </div>
+                    <div className="space-y-4">
+                        <h4 className="font-medium text-slate-900">Price Range (DZD)</h4>
+                        <div className="grid grid-cols-2 gap-3">
+                            <FormField label="From">
+                                <Input
+                                    type="number"
+                                    value={formData.price_range_min}
+                                    onChange={(e) => updateField('price_range_min', e.target.value)}
+                                    placeholder="50000"
+                                />
+                            </FormField>
+                            <FormField label="To">
+                                <Input
+                                    type="number"
+                                    value={formData.price_range_max}
+                                    onChange={(e) => updateField('price_range_max', e.target.value)}
+                                    placeholder="150000"
+                                />
+                            </FormField>
+                        </div>
+                    </div>
+                </div>
+            </SectionCard>
+
+            <SectionCard title="Amenities" description="Select all features your venue offers">
+                <div className="flex flex-wrap gap-2">
+                    {amenitiesList.map((amenity) => (
+                        <AmenityTag
+                            key={amenity.name}
+                            amenity={amenity}
+                            selected={formData.amenities.includes(amenity.name)}
+                            onClick={() => toggleAmenity(amenity.name)}
+                        />
+                    ))}
+                </div>
+            </SectionCard>
+        </div>
+    );
+
+    const renderPhotosTab = () => (
+        <div className="space-y-6">
+            <SectionCard 
+                title="Photo Gallery" 
+                description="Upload high-quality photos of your venue"
+                action={
+                    <label className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg cursor-pointer hover:bg-primary-700 transition-colors flex items-center gap-2">
+                        <Upload className="w-4 h-4" />
+                        Add Photos
+                        <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                        />
+                    </label>
+                }
+            >
+                {formData.images.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl">
+                        <Camera className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No photos yet</p>
+                        <p className="text-sm text-slate-400">Upload photos to showcase your venue</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {formData.images.map((img, idx) => (
+                            <motion.div
+                                key={idx}
+                                layout
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 ring-1 ring-slate-200"
+                            >
+                                <img src={img} alt={`Venue ${idx + 1}`} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors" />
+                                <button
+                                    type="button"
+                                    onClick={() => removeImage(idx)}
+                                    className="absolute top-2 right-2 p-2 bg-white/90 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                                {idx === 0 && (
+                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-primary-600 text-white text-xs font-medium rounded-md">
+                                        Cover
+                                    </div>
+                                )}
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+            </SectionCard>
+        </div>
+    );
+
+    const renderContactTab = () => (
+        <div className="space-y-6">
+            <SectionCard title="Contact Information" description="How customers can reach you">
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Phone Number" required>
+                            <Input
+                                type="tel"
+                                value={formData.phone}
+                                onChange={(e) => updateField('phone', e.target.value)}
+                                placeholder="0555 123 456"
+                            />
+                        </FormField>
+                        <FormField label="WhatsApp">
+                            <Input
+                                type="tel"
+                                value={formData.whatsapp}
+                                onChange={(e) => updateField('whatsapp', e.target.value)}
+                                placeholder="Same as phone"
+                            />
+                        </FormField>
+                    </div>
+
+                    <FormField label="Email Address">
+                        <Input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => updateField('email', e.target.value)}
+                            placeholder="contact@venue.dz"
+                        />
+                    </FormField>
+                </div>
+            </SectionCard>
+
+            <SectionCard title="Social Media" description="Connect your social profiles">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                        <Facebook className="w-5 h-5 text-blue-600" />
+                        <Input
+                            value={formData.facebook_url}
+                            onChange={(e) => updateField('facebook_url', e.target.value)}
+                            placeholder="Facebook page URL"
+                            className="flex-1 bg-white"
+                        />
+                    </div>
+                    <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
+                        <Instagram className="w-5 h-5 text-pink-600" />
+                        <Input
+                            value={formData.instagram_url}
+                            onChange={(e) => updateField('instagram_url', e.target.value)}
+                            placeholder="Instagram profile URL"
+                            className="flex-1 bg-white"
+                        />
+                    </div>
+                </div>
+            </SectionCard>
+        </div>
+    );
+
+    // --- Preview Panel ---
+
+    const PreviewPanel = () => (
+        <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="lg:col-span-1"
+        >
+            <div className="sticky top-24">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                        <h3 className="font-semibold text-slate-900 flex items-center gap-2">
+                            <Eye className="w-4 h-4" />
+                            Live Preview
+                        </h3>
+                        <button 
+                            onClick={() => setShowPreview(false)}
+                            className="lg:hidden text-slate-400 hover:text-slate-600"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                    
+                    <div className="p-4">
+                        {/* Preview Card */}
+                        <div className="rounded-xl overflow-hidden border border-slate-200">
+                            {/* Cover Image */}
+                            <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center relative">
+                                {formData.images[0] ? (
+                                    <img src={formData.images[0]} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                    <ImageIcon className="w-12 h-12 text-primary-300" />
+                                )}
+                                {formData.status === 'pending' && (
+                                    <span className="absolute top-2 left-2 px-2 py-1 bg-amber-400 text-amber-900 text-xs font-medium rounded-md">
+                                        Pending
+                                    </span>
+                                )}
+                            </div>
+                            
+                            {/* Info */}
+                            <div className="p-4">
+                                <h4 className="font-bold text-slate-900 truncate">
+                                    {formData.name || 'Your Venue Name'}
+                                </h4>
+                                <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
+                                    <MapPin className="w-3.5 h-3.5" />
+                                    {formData.location || 'Location'}
+                                </p>
+                                
+                                <div className="flex items-center gap-4 mt-3 text-sm">
+                                    <span className="text-slate-600">
+                                        {formData.capacity_max ? `${formData.capacity_max} guests` : 'Capacity'}
+                                    </span>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="text-primary-600 font-medium">
+                                        {formData.price_range_min ? `From ${parseInt(formData.price_range_min).toLocaleString()} DZD` : 'Price'}
+                                    </span>
+                                </div>
+                                
+                                {formData.amenities.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-3">
+                                        {formData.amenities.slice(0, 3).map(a => (
+                                            <span key={a} className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded">
+                                                {a}
+                                            </span>
+                                        ))}
+                                        {formData.amenities.length > 3 && (
+                                            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded">
+                                                +{formData.amenities.length - 3}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="grid grid-cols-3 gap-2 mt-4">
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                                <div className="text-lg font-bold text-slate-900">{formData.images.length}</div>
+                                <div className="text-xs text-slate-500">Photos</div>
+                            </div>
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                                <div className="text-lg font-bold text-slate-900">{formData.amenities.length}</div>
+                                <div className="text-xs text-slate-500">Amenities</div>
+                            </div>
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                                <div className="text-lg font-bold text-slate-900">
+                                    {formData.phone ? '✓' : '—'}
+                                </div>
+                                <div className="text-xs text-slate-500">Contact</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+
+    return (
+        <div className="min-h-screen bg-slate-50/50">
+            {/* Header */}
+            <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6">
+                    <div className="flex items-center justify-between h-16">
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => router.push('/dashboard/venues')}
+                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
+                            <div>
+                                <h1 className="font-semibold text-slate-900">Edit Venue</h1>
+                                <p className="text-sm text-slate-500">{formData.name || 'Loading...'}</p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setShowPreview(!showPreview)}
+                                className="lg:hidden px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium flex items-center gap-2"
+                            >
+                                <Eye className="w-4 h-4" />
+                                Preview
+                            </button>
+                            
+                            <button
+                                onClick={handleSave}
+                                disabled={!hasChanges || saving}
+                                className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all ${
+                                    hasChanges 
+                                        ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg shadow-primary-500/20' 
+                                        : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                }`}
+                            >
+                                {saving ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Save className="w-4 h-4" />
+                                )}
+                                {saving ? 'Saving...' : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Tabs */}
+                    <div className="flex items-center gap-1 -mb-px overflow-x-auto">
+                        <TabButton
+                            active={activeTab === 'overview'}
+                            onClick={() => setActiveTab('overview')}
+                            icon={Sparkles}
+                            label="Overview"
+                        />
+                        <TabButton
+                            active={activeTab === 'details'}
+                            onClick={() => setActiveTab('details')}
+                            icon={CheckCircle2}
+                            label="Details"
+                        />
+                        <TabButton
+                            active={activeTab === 'photos'}
+                            onClick={() => setActiveTab('photos')}
+                            icon={Camera}
+                            label="Photos"
+                            badge={formData.images.length}
+                        />
+                        <TabButton
+                            active={activeTab === 'contact'}
+                            onClick={() => setActiveTab('contact')}
+                            icon={Phone}
+                            label="Contact"
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* Content */}
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Main Content */}
+                    <div className="lg:col-span-2">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={activeTab}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                {activeTab === 'overview' && renderOverviewTab()}
+                                {activeTab === 'details' && renderDetailsTab()}
+                                {activeTab === 'photos' && renderPhotosTab()}
+                                {activeTab === 'contact' && renderContactTab()}
+                            </motion.div>
+                        </AnimatePresence>
+                    </div>
+                    
+                    {/* Preview Panel - Desktop */}
+                    <div className="hidden lg:block">
+                        <PreviewPanel />
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile Preview Modal */}
+            <AnimatePresence>
+                {showPreview && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                            onClick={() => setShowPreview(false)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: '100%' }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: '100%' }}
+                            className="fixed inset-x-0 bottom-0 z-50 lg:hidden bg-white rounded-t-2xl p-4 max-h-[80vh] overflow-auto"
+                        >
+                            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto mb-4" />
+                            <PreviewPanel />
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}

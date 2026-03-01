@@ -1,0 +1,1123 @@
+'use client';
+
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from '@/i18n/navigation';
+import { uploadVenueImages } from '@/lib/supabase/storage';
+import { formatBytes } from '@/lib/media-optimizer';
+import { useTranslations, useLocale } from 'next-intl';
+import { WILAYAS, getWilayaLabel, getWilayas } from '@/lib/wilayas';
+import {
+    Building2,
+    PartyPopper,
+    Users,
+    TreeDeciduous,
+    Home,
+    Hotel,
+    Utensils,
+    Moon,
+    Upload,
+    X,
+    Check,
+    ChevronRight,
+    ChevronLeft,
+    MapPin,
+    Phone,
+    Mail,
+    Facebook,
+    Instagram,
+    Info,
+    Camera,
+    Sparkles,
+    Car,
+    Wind,
+    Speaker,
+    Lightbulb,
+    ChefHat,
+    Wifi,
+    Accessibility,
+    Music,
+    Flower2,
+    Waves,
+    Sun,
+    ImageIcon,
+    Loader2,
+    CheckCircle2,
+    Star,
+    AlertCircle
+} from 'lucide-react';
+
+// --- Types & Constants ---
+
+const getCategories = (t: (key: string) => string) => [
+    { id: 'wedding-hall', icon: Building2, label: t('NewVenue.categories.wedding_hall'), color: 'rose' },
+    { id: 'event-salon', icon: PartyPopper, label: t('NewVenue.categories.event_salon'), color: 'purple' },
+    { id: 'conference-room', icon: Users, label: t('NewVenue.categories.conference_room'), color: 'blue' },
+    { id: 'garden-outdoor', icon: TreeDeciduous, label: t('NewVenue.categories.garden_outdoor'), color: 'green' },
+    { id: 'villa', icon: Home, label: t('NewVenue.categories.villa'), color: 'orange' },
+    { id: 'hotel-ballroom', icon: Hotel, label: t('NewVenue.categories.hotel_ballroom'), color: 'indigo' },
+    { id: 'restaurant', icon: Utensils, label: t('NewVenue.categories.restaurant'), color: 'amber' },
+    { id: 'rooftop', icon: Moon, label: t('NewVenue.categories.rooftop'), color: 'sky' },
+];
+
+
+
+const getAmenities = (t: (key: string) => string) => [
+    { id: 'parking', name: t('NewVenue.amenities.parking'), icon: Car },
+    { id: 'air_conditioning', name: t('NewVenue.amenities.air_conditioning'), icon: Wind },
+    { id: 'sound_system', name: t('NewVenue.amenities.sound_system'), icon: Speaker },
+    { id: 'lighting', name: t('NewVenue.amenities.lighting'), icon: Lightbulb },
+    { id: 'catering', name: t('NewVenue.amenities.catering'), icon: ChefHat },
+    { id: 'wifi', name: t('NewVenue.amenities.wifi'), icon: Wifi },
+    { id: 'wheelchair_access', name: t('NewVenue.amenities.wheelchair_access'), icon: Accessibility },
+    { id: 'dance_floor', name: t('NewVenue.amenities.dance_floor'), icon: Music },
+    { id: 'garden', name: t('NewVenue.amenities.garden'), icon: Flower2 },
+    { id: 'pool', name: t('NewVenue.amenities.pool'), icon: Waves },
+    { id: 'terrace', name: t('NewVenue.amenities.terrace'), icon: Sun },
+    { id: 'stage', name: t('NewVenue.amenities.stage'), icon: Star },
+];
+
+type CityOption = {
+    id: number;
+    commune_name: string;
+    daira_name: string | null;
+    wilaya_code: number;
+    wilaya_name: string;
+};
+
+// --- Components ---
+
+const StepIndicator = ({ currentStep, totalSteps, t }: { currentStep: number; totalSteps: number; t: (key: string) => string }) => {
+    const steps = ['NewVenue.steps.start', 'NewVenue.steps.basic', 'NewVenue.steps.details', 'NewVenue.steps.contact', 'NewVenue.steps.review'];
+    
+    return (
+        <div className="w-full max-w-xs sm:max-w-2xl md:max-w-3xl mx-auto mb-6 sm:mb-8 px-2">
+            <div className="flex items-center justify-between relative">
+                {/* Progress Bar Background */}
+                <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
+                {/* Progress Bar Fill */}
+                <motion.div 
+                    className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-primary-500 to-primary-600 -translate-y-1/2 rounded-full"
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
+                    transition={{ duration: 0.5, ease: 'easeInOut' }}
+                />
+                
+                {steps.map((stepKey, idx) => {
+                    const stepNum = idx + 1;
+                    const isActive = stepNum === currentStep;
+                    const isCompleted = stepNum < currentStep;
+                    
+                    return (
+                        <div key={stepKey} className="relative z-10 flex flex-col items-center">
+                            <motion.div
+                                className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-xs sm:text-sm font-semibold transition-all duration-300 ${
+                                    isCompleted 
+                                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/30' 
+                                        : isActive 
+                                            ? 'bg-white text-primary-600 border-2 border-primary-600 shadow-lg shadow-primary-500/20 scale-110' 
+                                            : 'bg-white text-slate-400 border-2 border-slate-200'
+                                }`}
+                                animate={isActive ? { scale: [1, 1.1, 1] } : {}}
+                                transition={{ duration: 0.3 }}
+                            >
+                                {isCompleted ? <Check className="w-3 h-3 sm:w-5 sm:h-5" /> : stepNum}
+                            </motion.div>
+                            <span className={`mt-1 sm:mt-2 text-[10px] sm:text-xs font-medium transition-colors text-center max-w-[50px] sm:max-w-none leading-tight ${
+                                isActive || isCompleted ? 'text-primary-700' : 'text-slate-400'
+                            }`}>
+                                {t(stepKey)}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+const CategoryCard = ({ 
+    category, 
+    selected, 
+    onClick 
+}: { 
+    category: ReturnType<typeof getCategories>[number]; 
+    selected: boolean; 
+    onClick: () => void;
+}) => {
+    const Icon = category.icon;
+    const colorClasses: Record<string, string> = {
+        rose: 'group-hover:bg-rose-50 group-hover:border-rose-200 group-hover:text-rose-600',
+        purple: 'group-hover:bg-purple-50 group-hover:border-purple-200 group-hover:text-purple-600',
+        blue: 'group-hover:bg-blue-50 group-hover:border-blue-200 group-hover:text-blue-600',
+        green: 'group-hover:bg-green-50 group-hover:border-green-200 group-hover:text-green-600',
+        orange: 'group-hover:bg-orange-50 group-hover:border-orange-200 group-hover:text-orange-600',
+        indigo: 'group-hover:bg-indigo-50 group-hover:border-indigo-200 group-hover:text-indigo-600',
+        amber: 'group-hover:bg-amber-50 group-hover:border-amber-200 group-hover:text-amber-600',
+        sky: 'group-hover:bg-sky-50 group-hover:border-sky-200 group-hover:text-sky-600',
+    };
+    
+    const selectedClasses: Record<string, string> = {
+        rose: 'bg-rose-50 border-rose-500 text-rose-700 shadow-rose-100',
+        purple: 'bg-purple-50 border-purple-500 text-purple-700 shadow-purple-100',
+        blue: 'bg-blue-50 border-blue-500 text-blue-700 shadow-blue-100',
+        green: 'bg-green-50 border-green-500 text-green-700 shadow-green-100',
+        orange: 'bg-orange-50 border-orange-500 text-orange-700 shadow-orange-100',
+        indigo: 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-indigo-100',
+        amber: 'bg-amber-50 border-amber-500 text-amber-700 shadow-amber-100',
+        sky: 'bg-sky-50 border-sky-500 text-sky-700 shadow-sky-100',
+    };
+    
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`group relative p-3 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-all duration-300 flex flex-col items-center gap-2 sm:gap-3 ${
+                selected 
+                    ? `${selectedClasses[category.color]} shadow-lg scale-[1.02]` 
+                    : `bg-white border-slate-100 ${colorClasses[category.color]} hover:shadow-md hover:-translate-y-0.5`
+            }`}
+        >
+            <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl transition-colors ${
+                selected ? 'bg-white/80' : 'bg-slate-50 group-hover:bg-white/60'
+            }`}>
+                <Icon className={`w-5 h-5 sm:w-7 sm:h-7 transition-colors ${
+                    selected ? '' : 'text-slate-400 group-hover:text-current'
+                }`} strokeWidth={1.5} />
+            </div>
+            <span className="text-xs sm:text-sm font-medium text-center leading-tight">{category.label}</span>
+            {selected && (
+                <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2"
+                >
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 bg-primary-600 rounded-full flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                    </div>
+                </motion.div>
+            )}
+        </button>
+    );
+};
+
+const AmenityTag = ({ 
+    amenity, 
+    selected, 
+    onClick 
+}: { 
+    amenity: ReturnType<typeof getAmenities>[number]; 
+    selected: boolean; 
+    onClick: () => void;
+}) => {
+    const Icon = amenity.icon;
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 ${
+                selected 
+                    ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/25 scale-105' 
+                    : 'bg-white border border-slate-200 text-slate-600 hover:border-primary-300 hover:bg-primary-50/50'
+            }`}
+        >
+            <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span className="whitespace-nowrap">{amenity.name}</span>
+        </button>
+    );
+};
+
+const ImageUploadZone = ({ 
+    images, 
+    onUpload, 
+    onRemove, 
+    uploading, 
+    progress,
+    t
+}: { 
+    images: string[];
+    onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onRemove: (idx: number) => void;
+    uploading: boolean;
+    progress: { current: number; total: number } | null;
+    t: (key: string) => string;
+}) => {
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    return (
+        <div className="space-y-4">
+            {/* Image Grid */}
+            {images.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-4">
+                    {images.map((img, idx) => (
+                        <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 ring-1 ring-slate-200"
+                        >
+                            <img src={img} alt={`Venue ${idx + 1}`} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <button
+                                type="button"
+                                onClick={() => onRemove(idx)}
+                                className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 p-1.5 sm:p-2 bg-white/90 backdrop-blur-sm text-red-500 rounded-lg sm:rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110 shadow-lg"
+                            >
+                                <X className="w-3 h-3 sm:w-4 sm:h-4" />
+                            </button>
+                            {idx === 0 && (
+                                <div className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary-600 text-white text-[10px] sm:text-xs font-medium rounded-md sm:rounded-lg">
+                                    {t('NewVenue.form.cover')}
+                                </div>
+                            )}
+                        </motion.div>
+                    ))}
+                    
+                    {/* Add More Button */}
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="aspect-square rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1.5 sm:gap-2 text-slate-400 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50/50 transition-all"
+                    >
+                        <Camera className="w-6 h-6 sm:w-8 sm:h-8" />
+                        <span className="text-xs sm:text-sm font-medium">{t('NewVenue.form.add_more')}</span>
+                    </button>
+                </div>
+            )}
+            
+            {/* Upload Zone */}
+            {images.length === 0 && (
+                <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="relative rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-300 p-6 sm:p-12 text-center hover:border-primary-400 hover:bg-primary-50/30 transition-all cursor-pointer group"
+                >
+                    <div className="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-xl sm:rounded-2xl bg-primary-50 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Upload className="w-7 h-7 sm:w-10 sm:h-10 text-primary-600" />
+                    </div>
+                    <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-1">{t('NewVenue.form.photos_help')}</h3>
+                    <p className="text-xs sm:text-sm text-slate-500 mb-3 sm:mb-4">{t('NewVenue.form.photos_browse')}</p>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-slate-400">
+                        <span className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> {t('NewVenue.form.photos_formats')}
+                        </span>
+                        <span className="flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" /> {t('NewVenue.form.photos_optimized')}
+                        </span>
+                    </div>
+                </div>
+            )}
+            
+            {/* Hidden Input */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={onUpload}
+                className="hidden"
+            />
+            
+            {/* Upload Progress */}
+            {uploading && progress && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-3 sm:p-4 bg-primary-50 border border-primary-200 rounded-lg sm:rounded-xl"
+                >
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600 animate-spin" />
+                        <div className="flex-1">
+                            <div className="flex justify-between text-xs sm:text-sm mb-1">
+                                <span className="font-medium text-primary-900">{t('NewVenue.form.optimizing')}</span>
+                                <span className="text-primary-700">{progress.current}/{progress.total}</span>
+                            </div>
+                            <div className="h-1.5 sm:h-2 bg-primary-200 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full bg-primary-600 rounded-full"
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${(progress.current / progress.total) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+        </div>
+    );
+};
+
+// --- Main Page Component ---
+
+export default function NewVenuePage() {
+    const t = useTranslations();
+    const locale = useLocale();
+    const router = useRouter();
+    const [step, setStep] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+    const [optimizationStats, setOptimizationStats] = useState<{ saved: string; percent: string } | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    
+    const categories = useMemo(() => getCategories(t), [t]);
+    const wilayas = useMemo(() => getWilayas(t), [t]);
+    const amenitiesList = useMemo(() => getAmenities(t), [t]);
+    const [cities, setCities] = useState<CityOption[]>([]);
+    const [citiesLoading, setCitiesLoading] = useState(false);
+    const [citiesError, setCitiesError] = useState<string | null>(null);
+    const citiesCacheRef = useRef(new Map<string, CityOption[]>());
+    
+    const [formData, setFormData] = useState({
+        name: '',
+        description: '',
+        category: '',
+        wilaya: '',
+        city: '',
+        address: '',
+        capacity_min: '',
+        capacity_max: '',
+        price_range_min: '',
+        price_range_max: '',
+        phone: '',
+        whatsapp: '',
+        email: '',
+        facebook_url: '',
+        instagram_url: '',
+        amenities: [] as string[],
+        images: [] as string[],
+    });
+
+    const updateField = (field: string, value: string | string[]) => {
+        setFormData(prev => {
+            if (field === 'wilaya') {
+                return { ...prev, wilaya: value as string, city: '' };
+            }
+            return { ...prev, [field]: value };
+        });
+        setError(null);
+    };
+
+    useEffect(() => {
+        if (!formData.wilaya) {
+            setCities([]);
+            setCitiesError(null);
+            return;
+        }
+
+        const selectedWilaya = WILAYAS.find((w) => w.id === formData.wilaya);
+        if (!selectedWilaya) {
+            setCities([]);
+            setCitiesError(null);
+            return;
+        }
+
+        const cached = citiesCacheRef.current.get(selectedWilaya.code);
+        if (cached) {
+            setCities(cached);
+            return;
+        }
+
+        setCitiesLoading(true);
+        setCitiesError(null);
+        fetch(`/api/cities?wilaya_code=${selectedWilaya.code}`)
+            .then((res) => res.json())
+            .then((payload) => {
+                const list = (payload?.data || []) as CityOption[];
+                citiesCacheRef.current.set(selectedWilaya.code, list);
+                setCities(list);
+            })
+            .catch(() => {
+                setCitiesError(t('NewVenue.form.city_load_error'));
+            })
+            .finally(() => setCitiesLoading(false));
+    }, [formData.wilaya, t]);
+
+    const toggleAmenity = (amenityId: string) => {
+        setFormData(prev => ({
+            ...prev,
+            amenities: prev.amenities.includes(amenityId)
+                ? prev.amenities.filter(a => a !== amenityId)
+                : [...prev.amenities, amenityId]
+        }));
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        
+        const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+        if (!files.length) return;
+
+        setUploading(true);
+        setError(null);
+        
+        try {
+            const tempVenueId = `temp_${Date.now()}`;
+            const results = await uploadVenueImages(files, tempVenueId, (progress) => {
+                setUploadProgress({ current: progress.current, total: progress.total });
+            });
+
+            const totalOriginal = results.reduce((sum, r) => sum + r.originalSize, 0);
+            const totalOptimized = results.reduce((sum, r) => sum + r.optimizedSize, 0);
+            const saved = totalOriginal - totalOptimized;
+            
+            if (saved > 0) {
+                setOptimizationStats({
+                    saved: formatBytes(saved),
+                    percent: ((saved / totalOriginal) * 100).toFixed(1)
+                });
+            }
+
+            setFormData(prev => ({
+                ...prev,
+                images: [...prev.images, ...results.map(r => r.publicUrl)]
+            }));
+        } catch (err: any) {
+            setError(t('NewVenue.errors.upload_failed') + ': ' + err.message);
+        } finally {
+            setUploading(false);
+            setUploadProgress(null);
+        }
+    };
+
+    const removeImage = (idx: number) => {
+        setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
+    };
+
+    // Fixed submission using API route
+    const handleSubmit = async () => {
+        setIsSubmitting(true);
+        setError(null);
+        
+        try {
+            // Use the API route instead of direct supabase insert
+            const response = await fetch('/api/venues', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    title: formData.name,
+                    description: formData.description,
+                    category: formData.category,
+                    location: formData.wilaya,
+                    wilaya: formData.wilaya,
+                    city: formData.city,
+                    address: formData.address,
+                    capacity_min: parseInt(formData.capacity_min) || 0,
+                    capacity_max: parseInt(formData.capacity_max) || 0,
+                    capacity: parseInt(formData.capacity_max) || 0,
+                    price_min: parseFloat(formData.price_range_min) || 0,
+                    price_max: parseFloat(formData.price_range_max) || 0,
+                    price: parseFloat(formData.price_range_min) || 0,
+                    phone: formData.phone,
+                    whatsapp: formData.whatsapp,
+                    contact_email: formData.email,
+                    facebook_url: formData.facebook_url,
+                    instagram_url: formData.instagram_url,
+                    amenities: formData.amenities,
+                    images: formData.images,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            // Success - redirect to venues list
+            router.push('/dashboard/venues');
+            router.refresh();
+        } catch (err: any) {
+            console.error('Submit error:', err);
+            setError(err.message || t('NewVenue.errors.submit_failed'));
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const canProceed = () => {
+        switch (step) {
+            case 1: return true;
+            case 2: return formData.name && formData.category && formData.wilaya && formData.city && formData.description;
+            case 3: return true;
+            case 4: return formData.phone;
+            case 5: return true;
+            default: return true;
+        }
+    };
+
+    // --- Step Content Renderers ---
+
+    const renderWelcomeStep = () => (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="text-center max-w-2xl mx-auto py-8 sm:py-12 px-4"
+        >
+            <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-6 sm:mb-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-xl shadow-primary-500/30">
+                <Sparkles className="w-8 h-8 sm:w-12 sm:h-12 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-3 sm:mb-4">
+                {t('NewVenue.welcome.title')}
+            </h1>
+            <p className="text-base sm:text-lg text-slate-600 mb-6 sm:mb-8 leading-relaxed px-2">
+                {t('NewVenue.welcome.subtitle')}
+            </p>
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+                {[
+                    { icon: ImageIcon, label: t('NewVenue.welcome.add_photos'), desc: t('NewVenue.welcome.add_photos_desc') },
+                    { icon: MapPin, label: t('NewVenue.welcome.set_location'), desc: t('NewVenue.welcome.set_location_desc') },
+                    { icon: CheckCircle2, label: t('NewVenue.welcome.get_bookings'), desc: t('NewVenue.welcome.get_bookings_desc') },
+                ].map((item, idx) => (
+                    <div key={idx} className="p-2 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                        <item.icon className="w-5 h-5 sm:w-8 sm:h-8 text-primary-600 mx-auto mb-1.5 sm:mb-2" />
+                        <div className="font-medium text-slate-900 text-xs sm:text-base">{item.label}</div>
+                        <div className="text-[10px] sm:text-xs text-slate-500 hidden sm:block">{item.desc}</div>
+                    </div>
+                ))}
+            </div>
+            <button
+                onClick={() => setStep(2)}
+                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-primary-600 hover:bg-primary-700 text-white text-base sm:text-lg font-semibold rounded-xl sm:rounded-2xl transition-all hover:shadow-lg hover:shadow-primary-500/30 hover:-translate-y-0.5 inline-flex items-center justify-center gap-2"
+            >
+                {t('NewVenue.welcome.start_button')}
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+        </motion.div>
+    );
+
+    const renderBasicInfoStep = () => (
+        <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="max-w-3xl mx-auto space-y-4 sm:space-y-8 px-2 sm:px-0"
+        >
+            <div className="text-center mb-4 sm:mb-8">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 sm:mb-2">{t('NewVenue.steps.basic')}</h2>
+                <p className="text-sm sm:text-base text-slate-500">{t('NewVenue.form.description_hint')}</p>
+            </div>
+
+            <div className="space-y-4 sm:space-y-6">
+                {/* Venue Name */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                        {t('NewVenue.form.name')} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => updateField('name', e.target.value)}
+                        placeholder={t('NewVenue.form.name_placeholder')}
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-base"
+                    />
+                </div>
+
+                {/* Category */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2 sm:mb-3">
+                        {t('NewVenue.form.category')} <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                        {categories.map((cat) => (
+                            <CategoryCard
+                                key={cat.id}
+                                category={cat}
+                                selected={formData.category === cat.id}
+                                onClick={() => updateField('category', cat.id)}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Location */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            {t('NewVenue.form.wilaya')} <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={formData.wilaya}
+                            onChange={(e) => updateField('wilaya', e.target.value)}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm sm:text-base"
+                        >
+                            <option value="">{t('NewVenue.form.select_wilaya')}</option>
+                            {wilayas.map((w) => (
+                                <option key={w.id} value={w.id}>{w.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            {t('NewVenue.form.city')} <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={formData.city}
+                            onChange={(e) => updateField('city', e.target.value)}
+                            disabled={!formData.wilaya || citiesLoading}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm sm:text-base disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            <option value="">
+                                {citiesLoading ? t('NewVenue.form.city_loading') : t('NewVenue.form.select_city')}
+                            </option>
+                            {cities.map((city) => (
+                                <option key={city.id} value={city.commune_name}>{city.commune_name}</option>
+                            ))}
+                        </select>
+                        {citiesError ? (
+                            <p className="mt-2 text-xs text-red-600">{citiesError}</p>
+                        ) : null}
+                    </div>
+                    <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            {t('NewVenue.form.address')}
+                        </label>
+                        <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                            <input
+                                type="text"
+                                value={formData.address}
+                                onChange={(e) => updateField('address', e.target.value)}
+                                placeholder={t('NewVenue.form.address_placeholder')}
+                                className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm sm:text-base"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Description */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                        {t('NewVenue.form.description')} <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                        value={formData.description}
+                        onChange={(e) => updateField('description', e.target.value)}
+                        placeholder={t('NewVenue.form.description_placeholder')}
+                        rows={4}
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all resize-none text-sm sm:text-base"
+                    />
+                    <p className="mt-2 text-xs text-slate-400">
+                        {t('NewVenue.form.description_hint')}
+                    </p>
+                </div>
+            </div>
+        </motion.div>
+    );
+
+    const renderDetailsStep = () => (
+        <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="max-w-3xl mx-auto space-y-4 sm:space-y-8 px-2 sm:px-0"
+        >
+            <div className="text-center mb-4 sm:mb-8">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 sm:mb-2">{t('NewVenue.steps.details')}</h2>
+                <p className="text-sm sm:text-base text-slate-500">{t('NewVenue.form.photos_hint')}</p>
+            </div>
+
+            <div className="space-y-4 sm:space-y-6">
+                {/* Capacity & Price */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                        <label className="block text-sm font-medium text-slate-700 mb-3 sm:mb-4">
+                            {t('NewVenue.form.capacity_label')}
+                        </label>
+                        <div className="flex gap-2 sm:gap-3">
+                            <div className="flex-1">
+                                <span className="text-xs text-slate-500 mb-1 block">{t('NewVenue.form.min')}</span>
+                                <input
+                                    type="number"
+                                    value={formData.capacity_min}
+                                    onChange={(e) => updateField('capacity_min', e.target.value)}
+                                    placeholder="50"
+                                    className="w-full px-2 sm:px-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <span className="text-xs text-slate-500 mb-1 block">{t('NewVenue.form.max')}</span>
+                                <input
+                                    type="number"
+                                    value={formData.capacity_max}
+                                    onChange={(e) => updateField('capacity_max', e.target.value)}
+                                    placeholder="300"
+                                    className="w-full px-2 sm:px-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                        <label className="block text-sm font-medium text-slate-700 mb-3 sm:mb-4">
+                            {t('NewVenue.form.price_label')}
+                        </label>
+                        <div className="flex gap-2 sm:gap-3">
+                            <div className="flex-1">
+                                <span className="text-xs text-slate-500 mb-1 block">{t('NewVenue.form.from')}</span>
+                                <input
+                                    type="number"
+                                    value={formData.price_range_min}
+                                    onChange={(e) => updateField('price_range_min', e.target.value)}
+                                    placeholder="50000"
+                                    className="w-full px-2 sm:px-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <span className="text-xs text-slate-500 mb-1 block">{t('NewVenue.form.to')}</span>
+                                <input
+                                    type="number"
+                                    value={formData.price_range_max}
+                                    onChange={(e) => updateField('price_range_max', e.target.value)}
+                                    placeholder="150000"
+                                    className="w-full px-2 sm:px-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Amenities */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <label className="block text-sm font-medium text-slate-700 mb-3 sm:mb-4">
+                        {t('NewVenue.form.amenities')}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {amenitiesList.map((amenity) => (
+                            <AmenityTag
+                                key={amenity.id}
+                                amenity={amenity}
+                                selected={formData.amenities.includes(amenity.id)}
+                                onClick={() => toggleAmenity(amenity.id)}
+                            />
+                        ))}
+                    </div>
+                </div>
+
+                {/* Photos */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                {t('NewVenue.form.photos')}
+                            </label>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                {t('NewVenue.form.photos_hint')}
+                            </p>
+                        </div>
+                        {optimizationStats && (
+                            <span className="text-[10px] sm:text-xs text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+                                -{optimizationStats.saved}
+                            </span>
+                        )}
+                    </div>
+                    <ImageUploadZone
+                        images={formData.images}
+                        onUpload={handleImageUpload}
+                        onRemove={removeImage}
+                        uploading={uploading}
+                        progress={uploadProgress}
+                        t={t}
+                    />
+                </div>
+            </div>
+        </motion.div>
+    );
+
+    const renderContactStep = () => (
+        <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="max-w-2xl mx-auto space-y-4 sm:space-y-8 px-2 sm:px-0"
+        >
+            <div className="text-center mb-4 sm:mb-8">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 sm:mb-2">{t('NewVenue.steps.contact')}</h2>
+                <p className="text-sm sm:text-base text-slate-500">{t('NewVenue.form.phone_required')}</p>
+            </div>
+
+            <div className="space-y-3 sm:space-y-4">
+                {/* Phone & WhatsApp */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <label className="block text-sm font-medium text-slate-700 mb-3 sm:mb-4">
+                        {t('NewVenue.form.phone')} <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative mb-3 sm:mb-4">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                        <input
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) => updateField('phone', e.target.value)}
+                            placeholder={t('NewVenue.form.phone_placeholder')}
+                            className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm sm:text-base"
+                        />
+                    </div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                        {t('NewVenue.form.whatsapp')}
+                    </label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base sm:text-lg">💬</span>
+                        <input
+                            type="tel"
+                            value={formData.whatsapp}
+                            onChange={(e) => updateField('whatsapp', e.target.value)}
+                            placeholder={t('NewVenue.form.whatsapp_placeholder')}
+                            className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm sm:text-base"
+                        />
+                    </div>
+                </div>
+
+                {/* Email */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                        {t('NewVenue.form.email')}
+                    </label>
+                    <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-slate-400" />
+                        <input
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => updateField('email', e.target.value)}
+                            placeholder={t('NewVenue.form.email_placeholder')}
+                            className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm sm:text-base"
+                        />
+                    </div>
+                </div>
+
+                {/* Social Media */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <label className="block text-sm font-medium text-slate-700 mb-3 sm:mb-4">
+                        {t('NewVenue.form.social')} <span className="text-slate-400 font-normal">({t('NewVenue.form.social_optional')})</span>
+                    </label>
+                    <div className="space-y-2 sm:space-y-3">
+                        <div className="relative">
+                            <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                            <input
+                                type="url"
+                                value={formData.facebook_url}
+                                onChange={(e) => updateField('facebook_url', e.target.value)}
+                                placeholder={t('NewVenue.form.facebook')}
+                                className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm sm:text-base"
+                            />
+                        </div>
+                        <div className="relative">
+                            <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-pink-600" />
+                            <input
+                                type="url"
+                                value={formData.instagram_url}
+                                onChange={(e) => updateField('instagram_url', e.target.value)}
+                                placeholder={t('NewVenue.form.instagram')}
+                                className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm sm:text-base"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+
+    const renderReviewStep = () => (
+        <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="max-w-3xl mx-auto space-y-4 sm:space-y-8 px-2 sm:px-0"
+        >
+            <div className="text-center mb-4 sm:mb-8">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1 sm:mb-2">{t('NewVenue.form.review_title')}</h2>
+                <p className="text-sm sm:text-base text-slate-500">{t('NewVenue.form.review_subtitle')}</p>
+            </div>
+
+            <div className="space-y-3 sm:space-y-4">
+                {/* Summary Card */}
+                <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    {/* Header */}
+                    <div className="p-4 sm:p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
+                            <div className="min-w-0">
+                                <h3 className="text-lg sm:text-xl font-bold text-slate-900 truncate">{formData.name}</h3>
+                                <p className="text-slate-500 flex items-center gap-1 mt-1 text-sm">
+                                    <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                                    <span className="truncate">
+                                        {[formData.city, getWilayaLabel(t, formData.wilaya)].filter(Boolean).join(', ')}
+                                        {formData.address && `, ${formData.address}`}
+                                    </span>
+                                </p>
+                            </div>
+                            <span className="px-2.5 sm:px-3 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full self-start">
+                                {t('NewVenue.form.pending_review')}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    {/* Details */}
+                    <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                            <div className="p-2.5 sm:p-4 bg-slate-50 rounded-lg sm:rounded-xl text-center">
+                                <div className="text-lg sm:text-2xl font-bold text-slate-900">
+                                    {formData.capacity_max || formData.capacity_min || '-'}
+                                </div>
+                                <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide mt-1">{t('VenueDetails.capacity_label')}</div>
+                            </div>
+                            <div className="p-2.5 sm:p-4 bg-slate-50 rounded-lg sm:rounded-xl text-center">
+                                <div className="text-lg sm:text-2xl font-bold text-slate-900">
+                                    {formData.price_range_min ? `${parseInt(formData.price_range_min).toLocaleString()} DZD` : '-'}
+                                </div>
+                                <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide mt-1">{t('NewVenue.form.starting_price')}</div>
+                            </div>
+                            <div className="p-2.5 sm:p-4 bg-slate-50 rounded-lg sm:rounded-xl text-center">
+                                <div className="text-lg sm:text-2xl font-bold text-slate-900">
+                                    {formData.images.length}
+                                </div>
+                                <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide mt-1">{t('NewVenue.form.photo_count')}</div>
+                            </div>
+                        </div>
+
+                        {formData.amenities.length > 0 && (
+                            <div>
+                                <h4 className="text-xs sm:text-sm font-medium text-slate-700 mb-2">{t('NewVenue.form.amenities')}</h4>
+                                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                                    {formData.amenities.map(a => {
+                                        const amenity = amenitiesList.find(am => am.id === a);
+                                        return (
+                                            <span key={a} className="px-2 sm:px-3 py-1 bg-primary-50 text-primary-700 text-xs sm:text-sm rounded-md sm:rounded-lg">
+                                                {amenity?.name || a}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {formData.images.length > 0 && (
+                            <div>
+                                <h4 className="text-xs sm:text-sm font-medium text-slate-700 mb-2">{t('NewVenue.form.photos')}</h4>
+                                <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
+                                    {formData.images.slice(0, 4).map((img, idx) => (
+                                        <div key={idx} className="aspect-square rounded-lg overflow-hidden bg-slate-100">
+                                            <img src={img} alt="" className="w-full h-full object-cover" />
+                                        </div>
+                                    ))}
+                                    {formData.images.length > 4 && (
+                                        <div className="aspect-square rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 text-xs sm:text-sm font-medium">
+                                            +{formData.images.length - 4}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Info Notice */}
+                <div className="p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-lg sm:rounded-xl flex items-start gap-2 sm:gap-3">
+                    <Info className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="text-xs sm:text-sm text-amber-800">
+                        <p className="font-medium mb-1">{t('NewVenue.form.what_happens_next')}</p>
+                        <p className="text-amber-700">
+                            {t('NewVenue.form.review_notice')}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+
+    // --- Main Render ---
+
+    return (
+        <div className="min-h-screen bg-slate-50/50">
+            {/* Header */}
+            <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+                <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={() => router.push('/dashboard/venues')}
+                            className="text-slate-500 hover:text-slate-700 font-medium text-xs sm:text-sm flex items-center gap-1"
+                        >
+                            <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span className="hidden sm:inline">{t('NewVenue.cancel')}</span>
+                        </button>
+                        <h1 className="font-semibold text-slate-900 text-sm sm:text-base">{t('NewVenue.header_title')}</h1>
+                        <div className="w-10 sm:w-16" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Error Banner */}
+            {error && (
+                <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 mt-4"
+                >
+                    <div className="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg sm:rounded-xl flex items-start gap-2 sm:gap-3">
+                        <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 shrink-0 mt-0.5" />
+                        <div className="text-xs sm:text-sm text-red-800">
+                            {error}
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
+            {/* Content */}
+            <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-8">
+                {step > 1 && <StepIndicator currentStep={step} totalSteps={5} t={t} />}
+                
+                <AnimatePresence mode="wait">
+                    {step === 1 && renderWelcomeStep()}
+                    {step === 2 && renderBasicInfoStep()}
+                    {step === 3 && renderDetailsStep()}
+                    {step === 4 && renderContactStep()}
+                    {step === 5 && renderReviewStep()}
+                </AnimatePresence>
+
+                {/* Navigation */}
+                {step > 1 && (
+                    <div className="max-w-3xl mx-auto mt-6 sm:mt-8 flex items-center justify-between px-2 sm:px-0">
+                        <button
+                            onClick={() => setStep(step - 1)}
+                            className="px-4 sm:px-6 py-2.5 sm:py-3 border border-slate-200 text-slate-700 font-medium rounded-lg sm:rounded-xl hover:bg-slate-50 transition-all flex items-center gap-1.5 sm:gap-2 text-sm"
+                        >
+                            <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            <span className="hidden sm:inline">{t('NewVenue.buttons.prev')}</span>
+                        </button>
+                        
+                        {step < 5 ? (
+                            <button
+                                onClick={() => setStep(step + 1)}
+                                disabled={!canProceed()}
+                                className="px-5 sm:px-8 py-2.5 sm:py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-medium rounded-lg sm:rounded-xl transition-all flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-primary-500/20 hover:shadow-xl hover:shadow-primary-500/30 hover:-translate-y-0.5 text-sm"
+                            >
+                                {t('NewVenue.buttons.next')}
+                                <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting}
+                                className="px-5 sm:px-8 py-2.5 sm:py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-slate-300 text-white font-medium rounded-lg sm:rounded-xl transition-all flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-primary-500/20 text-sm"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                                        <span className="hidden sm:inline">{t('NewVenue.buttons.submitting')}</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="hidden sm:inline">{t('NewVenue.buttons.create_venue')}</span>
+                                        <span className="sm:hidden">{t('NewVenue.buttons.submit')}</span>
+                                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                    </>
+                                )}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
