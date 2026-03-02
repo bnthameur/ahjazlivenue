@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { redirect, notFound } from 'next/navigation';
 import AdminDashboardLayout from './AdminDashboardLayout';
 
 export default async function Layout({ children }: { children: React.ReactNode }) {
@@ -20,9 +20,9 @@ export default async function Layout({ children }: { children: React.ReactNode }
         .eq('id', user.id)
         .single();
 
-    // Check if user is admin
+    // Check if user is admin — show 404 for non-admins
     if (!profile || profile.role !== 'admin') {
-        redirect('/dashboard');
+        notFound();
     }
 
     return (

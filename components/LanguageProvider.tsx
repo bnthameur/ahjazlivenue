@@ -97,6 +97,37 @@ export const translations = {
         'status.read': 'Read',
         'status.replied': 'Replied',
         'status.closed': 'Closed',
+        'admin.title': 'Admin Panel',
+        'admin.nav.dashboard': 'Dashboard',
+        'admin.nav.venues': 'Venues',
+        'admin.nav.users': 'Users',
+        'admin.nav.inquiries': 'Inquiries',
+        'admin.nav.settings': 'Settings',
+        'admin.dashboard.title': 'Admin Dashboard',
+        'admin.dashboard.subtitle': 'Monitor and manage your platform',
+        'admin.status.pending': 'Pending',
+        'admin.status.approved': 'Approved',
+        'admin.status.rejected': 'Rejected',
+        'admin.status.published': 'Published',
+        'admin.status.active': 'Active',
+        'admin.stats.pending_venues': 'Pending Venues',
+        'admin.stats.active_venues': 'Active Venues',
+        'admin.stats.pending_users': 'Pending Users',
+        'admin.stats.active_users': 'Active Users',
+        'admin.stats.review_now': 'Review now',
+        'admin.stats.view_all': 'View all',
+        'admin.stats.review': 'Review',
+        'admin.stats.total': 'Total',
+        'admin.actions.title': 'Quick Actions',
+        'admin.actions.manage_venues': 'Manage Venues',
+        'admin.actions.manage_venues_desc': 'Review and approve venues',
+        'admin.actions.manage_users': 'Manage Users',
+        'admin.actions.manage_users_desc': 'Review venue owners',
+        'admin.actions.view_inquiries': 'View Inquiries',
+        'admin.actions.view_inquiries_desc': 'Monitor customer requests',
+        'admin.activity.title': 'Recent Activity',
+        'admin.activity.empty': 'No recent activity',
+        'admin.activity.empty_desc': 'Activity logs will appear here',
     },
     fr: {
         'nav.browse': 'Parcourir les lieux',
@@ -179,6 +210,37 @@ export const translations = {
         'status.read': 'Lu',
         'status.replied': 'Répondu',
         'status.closed': 'Fermé',
+        'admin.title': 'Panneau d\'Administration',
+        'admin.nav.dashboard': 'Tableau de Bord',
+        'admin.nav.venues': 'Salles',
+        'admin.nav.users': 'Utilisateurs',
+        'admin.nav.inquiries': 'Demandes',
+        'admin.nav.settings': 'Paramètres',
+        'admin.dashboard.title': 'Tableau de Bord Admin',
+        'admin.dashboard.subtitle': 'Surveillez et gérez votre plateforme',
+        'admin.status.pending': 'En Attente',
+        'admin.status.approved': 'Approuvé',
+        'admin.status.rejected': 'Rejeté',
+        'admin.status.published': 'Publié',
+        'admin.status.active': 'Actif',
+        'admin.stats.pending_venues': 'Salles en Attente',
+        'admin.stats.active_venues': 'Salles Actives',
+        'admin.stats.pending_users': 'Utilisateurs en Attente',
+        'admin.stats.active_users': 'Utilisateurs Actifs',
+        'admin.stats.review_now': 'Vérifier',
+        'admin.stats.view_all': 'Voir tout',
+        'admin.stats.review': 'Révision',
+        'admin.stats.total': 'Total',
+        'admin.actions.title': 'Actions Rapides',
+        'admin.actions.manage_venues': 'Gérer les Salles',
+        'admin.actions.manage_venues_desc': 'Examiner et approuver les salles',
+        'admin.actions.manage_users': 'Gérer les Utilisateurs',
+        'admin.actions.manage_users_desc': 'Vérifier les propriétaires de salles',
+        'admin.actions.view_inquiries': 'Voir les Demandes',
+        'admin.actions.view_inquiries_desc': 'Suivre les demandes clients',
+        'admin.activity.title': 'Activité Récente',
+        'admin.activity.empty': 'Aucune activité récente',
+        'admin.activity.empty_desc': 'Les journaux d\'activité apparaîtront ici',
     },
     ar: {
         'nav.browse': 'تصفح القاعات',
@@ -261,6 +323,37 @@ export const translations = {
         'status.read': 'مقروء',
         'status.replied': 'تم الرد',
         'status.closed': 'مغلق',
+        'admin.title': 'لوحة الإدارة',
+        'admin.nav.dashboard': 'لوحة التحكم',
+        'admin.nav.venues': 'القاعات',
+        'admin.nav.users': 'المستخدمين',
+        'admin.nav.inquiries': 'الطلبات',
+        'admin.nav.settings': 'الإعدادات',
+        'admin.dashboard.title': 'لوحة تحكم المشرف',
+        'admin.dashboard.subtitle': 'راقب وأدر منصتك',
+        'admin.status.pending': 'قيد الانتظار',
+        'admin.status.approved': 'موافق عليه',
+        'admin.status.rejected': 'مرفوض',
+        'admin.status.published': 'منشور',
+        'admin.status.active': 'نشط',
+        'admin.stats.pending_venues': 'قاعات قيد الانتظار',
+        'admin.stats.active_venues': 'قاعات نشطة',
+        'admin.stats.pending_users': 'مستخدمين قيد الانتظار',
+        'admin.stats.active_users': 'مستخدمين نشطين',
+        'admin.stats.review_now': 'مراجعة الآن',
+        'admin.stats.view_all': 'عرض الكل',
+        'admin.stats.review': 'مراجعة',
+        'admin.stats.total': 'إجمالي',
+        'admin.actions.title': 'إجراءات سريعة',
+        'admin.actions.manage_venues': 'إدارة القاعات',
+        'admin.actions.manage_venues_desc': 'مراجعة والموافقة على القاعات',
+        'admin.actions.manage_users': 'إدارة المستخدمين',
+        'admin.actions.manage_users_desc': 'مراجعة أصحاب القاعات',
+        'admin.actions.view_inquiries': 'عرض الطلبات',
+        'admin.actions.view_inquiries_desc': 'متابعة طلبات العملاء',
+        'admin.activity.title': 'النشاط الأخير',
+        'admin.activity.empty': 'لا يوجد نشاط حديث',
+        'admin.activity.empty_desc': 'ستظهر سجلات النشاط هنا',
     }
 };
 
@@ -276,19 +369,19 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
         const fullPath = window.location.pathname;
         const localeMatch = fullPath.match(/^\/(en|fr|ar)(?:\/|$)/);
         const urlLocale = localeMatch?.[1] as Language | null;
-        
+
         // Check localStorage for saved preference
         const savedLocale = localStorage.getItem('language') as Language | null;
-        
+
         // Use URL locale first, then saved locale, then default
-        const initialLocale = (urlLocale && routing.locales.includes(urlLocale)) 
-            ? urlLocale 
+        const initialLocale = (urlLocale && routing.locales.includes(urlLocale))
+            ? urlLocale
             : (savedLocale && routing.locales.includes(savedLocale) ? savedLocale : routing.defaultLocale);
-        
+
         setLanguageState(initialLocale);
         document.documentElement.lang = initialLocale;
         document.documentElement.dir = initialLocale === 'ar' ? 'rtl' : 'ltr';
-        
+
         // Save to localStorage
         localStorage.setItem('language', initialLocale);
     }, []);
@@ -297,7 +390,7 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
     const handleSetLanguage = useCallback((lang: Language) => {
         // Get the full pathname from window.location (includes locale prefix)
         const fullPath = window.location.pathname;
-        
+
         // Use the utility function to properly create localized path
         // This ensures we don't get double locale prefixes
         const newPath = createLocalizedPath(fullPath, lang);
@@ -320,11 +413,11 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
     }, [language]);
 
     return (
-        <LanguageContext.Provider value={{ 
-            language, 
-            setLanguage: handleSetLanguage, 
-            dir: language === 'ar' ? 'rtl' : 'ltr', 
-            t 
+        <LanguageContext.Provider value={{
+            language,
+            setLanguage: handleSetLanguage,
+            dir: language === 'ar' ? 'rtl' : 'ltr',
+            t
         }}>
             {children}
         </LanguageContext.Provider>
