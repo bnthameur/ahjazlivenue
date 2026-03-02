@@ -24,19 +24,20 @@ export async function GET(request: Request) {
 
                 // Detect locale from referer or default to 'fr'
                 const locale = 'fr';
+                const appOrigin = 'https://app.ahjazliqaati.com';
 
                 if (profile?.role === 'admin') {
-                    return NextResponse.redirect(`${origin}/${locale}/admin`);
+                    return NextResponse.redirect(`${appOrigin}/${locale}/admin`);
                 }
 
-                return NextResponse.redirect(`${origin}/${locale}/dashboard`);
+                return NextResponse.redirect(`${appOrigin}/${locale}/dashboard`);
             }
 
             // Fallback: user exists but no profile yet
-            return NextResponse.redirect(`${origin}/fr/dashboard`);
+            return NextResponse.redirect(`https://app.ahjazliqaati.com/fr/dashboard`);
         }
     }
 
     // Return the user to an error page with instructions
-    return NextResponse.redirect(`${origin}/fr/login?error=auth_callback_error`);
+    return NextResponse.redirect(`https://app.ahjazliqaati.com/fr/login?error=auth_callback_error`);
 }

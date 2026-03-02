@@ -24,7 +24,7 @@ function LoginContent() {
         const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: `${window.location.origin}/api/auth/callback`,
+                redirectTo: `https://app.ahjazliqaati.com/api/auth/callback`,
             },
         });
         if (error) {
