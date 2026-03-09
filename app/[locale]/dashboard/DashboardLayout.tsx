@@ -5,6 +5,7 @@ import { useRouter, usePathname } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
 import { User } from '@supabase/supabase-js';
 import { useLanguage } from '@/components/LanguageProvider';
+import { useLocale } from 'next-intl';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Emoji } from 'react-apple-emojis';
@@ -67,6 +68,11 @@ const navigation = [
 function DashboardLanguageSwitcher() {
     const { language, setLanguage } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
+    const languageSwitcherTitle = language === 'ar'
+        ? 'تغيير اللغة'
+        : language === 'fr'
+            ? 'Changer de langue'
+            : 'Change language';
 
     const handleSwitch = (lang: 'en' | 'fr' | 'ar') => {
         setLanguage(lang);
@@ -78,7 +84,7 @@ function DashboardLanguageSwitcher() {
             <button
                 onClick={() => setIsOpen(!isOpen)}
                 className="p-1.5 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg flex items-center gap-1 transition-colors"
-                title="Change Language"
+                title={languageSwitcherTitle}
             >
                 <Emoji name="globe-showing-europe-africa" width={18} />
                 <span className="uppercase text-xs font-medium">{language}</span>
@@ -117,6 +123,7 @@ function DashboardLanguageSwitcher() {
 }
 
 export default function DashboardLayout({ user, profile, children }: DashboardLayoutProps) {
+    const locale = useLocale();
     const router = useRouter();
     const pathname = usePathname();
     const supabase = createClient();
@@ -161,7 +168,7 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
-        router.push('/login');
+        router.push(`/${locale}/login`);
         router.refresh();
     };
 

@@ -129,7 +129,7 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
 
                                         {/* Owner Info */}
                                         <div className="mb-3">
-                                            <p className="text-sm font-medium text-slate-700">{venue.profiles?.full_name || 'Unknown'}</p>
+                                            <p className="text-sm font-medium text-slate-700">{venue.profiles?.full_name || t('fallbacks.unknown_owner')}</p>
                                             <p className="text-xs text-slate-500">{venue.profiles?.email}</p>
                                         </div>
 
@@ -197,7 +197,7 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                     <div className="bg-white rounded-2xl p-6 max-w-md w-full">
                         <h2 className="text-xl font-bold text-slate-900 mb-4">{t('venues.reject_modal.title')}</h2>
                         <p className="text-sm text-slate-600 mb-4">
-                            {t('venues.reject_modal.description', { venue: selectedVenue?.title || selectedVenue?.name || 'this venue' })}
+                            {t('venues.reject_modal.description', { venue: selectedVenue?.title || selectedVenue?.name || t('fallbacks.this_venue') })}
                         </p>
                         <textarea
                             value={rejectionReason}

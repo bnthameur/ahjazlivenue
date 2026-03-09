@@ -388,8 +388,8 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
 
     // Handle language change
     const handleSetLanguage = useCallback((lang: Language) => {
-        // Get the full pathname from window.location (includes locale prefix)
-        const fullPath = window.location.pathname;
+        // Preserve query params and anchors while swapping locales.
+        const fullPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
         // Use the utility function to properly create localized path
         // This ensures we don't get double locale prefixes

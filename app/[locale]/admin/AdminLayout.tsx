@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname, Link } from '@/i18n/navigation';
 import { User } from '@supabase/supabase-js';
+import { useLocale } from 'next-intl';
 
 interface Profile {
     full_name: string | null;
@@ -50,13 +51,14 @@ const navigation = [
 ];
 
 export default function AdminLayout({ user, profile, children }: AdminLayoutProps) {
+    const locale = useLocale();
     const router = useRouter();
     const pathname = usePathname();
     const supabase = createClient();
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
-        router.push('/login');
+        router.push(`/${locale}/login`);
         router.refresh();
     };
 

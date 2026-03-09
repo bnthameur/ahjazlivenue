@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, Link } from '@/i18n/navigation';
+import { useLocale } from 'next-intl';
 import { Emoji } from 'react-apple-emojis';
 import { Niche, AIGeneratedContent, COUNTRIES } from '@/lib/types/landing-page';
 
@@ -28,6 +29,7 @@ const PAGE_TYPES = [
 ];
 
 export default function NewLandingPage() {
+    const locale = useLocale();
     const router = useRouter();
     const supabase = createClient();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -279,7 +281,7 @@ export default function NewLandingPage() {
 
                 if (insertErr) throw insertErr;
                 setCreatedPageId(page?.id || null);
-                router.push('/dashboard/pages');
+                router.push(`/${locale}/dashboard/pages`);
                 return;
             }
 
@@ -307,7 +309,7 @@ export default function NewLandingPage() {
             if (insertErr) throw insertErr;
 
             setCreatedPageId(page?.id || null);
-            router.push('/dashboard/pages');
+            router.push(`/${locale}/dashboard/pages`);
         } catch (err: any) { setError(err.message); }
         finally { setIsLoading(false); }
     };

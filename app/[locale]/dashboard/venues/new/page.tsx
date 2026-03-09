@@ -97,7 +97,7 @@ const StepIndicator = ({ currentStep, totalSteps, t }: { currentStep: number; to
                 <div className="absolute top-1/2 left-0 w-full h-1 bg-slate-100 -translate-y-1/2 rounded-full" />
                 {/* Progress Bar Fill */}
                 <motion.div 
-                    className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-primary-500 to-primary-600 -translate-y-1/2 rounded-full"
+                    className="absolute top-1/2 left-0 h-1 bg-linear-to-r from-primary-500 to-primary-600 -translate-y-1/2 rounded-full"
                     initial={{ width: '0%' }}
                     animate={{ width: `${((currentStep - 1) / (totalSteps - 1)) * 100}%` }}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
@@ -123,7 +123,7 @@ const StepIndicator = ({ currentStep, totalSteps, t }: { currentStep: number; to
                             >
                                 {isCompleted ? <Check className="w-3 h-3 sm:w-5 sm:h-5" /> : stepNum}
                             </motion.div>
-                            <span className={`mt-1 sm:mt-2 text-[10px] sm:text-xs font-medium transition-colors text-center max-w-[50px] sm:max-w-none leading-tight ${
+                            <span className={`mt-1 sm:mt-2 text-[10px] sm:text-xs font-medium transition-colors text-center max-w-12.5 sm:max-w-none leading-tight ${
                                 isActive || isCompleted ? 'text-primary-700' : 'text-slate-400'
                             }`}>
                                 {t(stepKey)}
@@ -257,7 +257,7 @@ const ImageUploadZone = ({
                             className="group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-slate-100 ring-1 ring-slate-200"
                         >
                             <img src={img} alt={`Venue ${idx + 1}`} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <button
                                 type="button"
                                 onClick={() => onRemove(idx)}
@@ -527,7 +527,7 @@ export default function NewVenuePage() {
             }
 
             // Success - redirect to venues list
-            router.push('/dashboard/venues');
+            router.push(`/${locale}/dashboard/venues`);
             router.refresh();
         } catch (err: any) {
             console.error('Submit error:', err);
@@ -557,7 +557,7 @@ export default function NewVenuePage() {
             exit={{ opacity: 0, y: -20 }}
             className="text-center max-w-2xl mx-auto py-8 sm:py-12 px-4"
         >
-            <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-6 sm:mb-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-xl shadow-primary-500/30">
+            <div className="w-16 h-16 sm:w-24 sm:h-24 mx-auto mb-6 sm:mb-8 rounded-2xl sm:rounded-3xl bg-linear-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-xl shadow-primary-500/30">
                 <Sparkles className="w-8 h-8 sm:w-12 sm:h-12 text-white" />
             </div>
             <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 mb-3 sm:mb-4">
@@ -935,12 +935,12 @@ export default function NewVenuePage() {
                 {/* Summary Card */}
                 <div className="bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                     {/* Header */}
-                    <div className="p-4 sm:p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+                    <div className="p-4 sm:p-6 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0">
                             <div className="min-w-0">
                                 <h3 className="text-lg sm:text-xl font-bold text-slate-900 truncate">{formData.name}</h3>
                                 <p className="text-slate-500 flex items-center gap-1 mt-1 text-sm">
-                                    <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                                    <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                                     <span className="truncate">
                                         {[formData.city, getWilayaLabel(t, formData.wilaya)].filter(Boolean).join(', ')}
                                         {formData.address && `, ${formData.address}`}

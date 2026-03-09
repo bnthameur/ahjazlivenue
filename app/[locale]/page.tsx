@@ -1,5 +1,8 @@
 import { redirect } from 'next/navigation';
 
-export default function HomePage() {
-    redirect('/dashboard');
+export default async function HomePage(props: {
+    params: Promise<{ locale: string }>;
+}) {
+    const { locale } = await props.params;
+    redirect(`/${locale}/dashboard`);
 }

@@ -3,11 +3,18 @@ import { type NextRequest, NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/navigation';
 import { VALID_LOCALES } from './i18n/routing';
+import { detectPreferredLocale } from './i18n/locale-utils';
 
 export async function proxy(request: NextRequest) {
     const handleI18n = createMiddleware(routing);
 
     const pathname = request.nextUrl.pathname;
+    const locale = detectPreferredLocale({
+        pathname,
+        cookieLocale: request.cookies.get('NEXT_LOCALE')?.value,
+        referer: request.headers.get('referer'),
+        acceptLanguage: request.headers.get('accept-language')
+    });
     
     // CRITICAL: Check for double locale pattern FIRST (before anything else)
     // Pattern: /xx/yy/... where both xx and yy are valid locales
@@ -50,7 +57,6 @@ export async function proxy(request: NextRequest) {
 
         // Handle root path - redirect to dashboard or login
         if (isRootPath) {
-            const locale = request.cookies.get('NEXT_LOCALE')?.value || 'en';
             const url = request.nextUrl.clone();
             
             if (!user) {
@@ -65,7 +71,6 @@ export async function proxy(request: NextRequest) {
 
         if (!user && isProtectedRoute) {
             // Redirect to login (maintaining locale if present, or defaulting)
-            const locale = request.cookies.get('NEXT_LOCALE')?.value || 'en';
             const url = request.nextUrl.clone();
             url.pathname = `/${locale}/login`;
             return NextResponse.redirect(url);
@@ -73,8 +78,6 @@ export async function proxy(request: NextRequest) {
 
         // Redirect authenticated users from login/register based on their role
         if (user && isAuthPage) {
-            const locale = request.cookies.get('NEXT_LOCALE')?.value || 'en';
-
             // Check if user is admin
             const { data: profile } = await supabase
                 .from('profiles')
@@ -91,8 +94,6 @@ export async function proxy(request: NextRequest) {
         }
 
         if (user && isProtectedRoute) {
-            const locale = request.cookies.get('NEXT_LOCALE')?.value || 'en';
-
             // If this is an admin path, enforce admin role
             if (pathname.includes('/admin')) {
                 const { data: profile } = await supabase

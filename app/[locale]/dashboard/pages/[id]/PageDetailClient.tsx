@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, Link } from '@/i18n/navigation';
+import { useLocale } from 'next-intl';
 
 interface LandingPage {
     id: string;
@@ -47,6 +48,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function PageDetailClient({ page, orders }: PageDetailClientProps) {
+    const locale = useLocale();
     const router = useRouter();
     const supabase = createClient();
     const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +83,7 @@ export default function PageDetailClient({ page, orders }: PageDetailClientProps
         setIsLoading(true);
         try {
             await supabase.from('landing_pages').delete().eq('id', page.id);
-            router.push('/dashboard/pages');
+            router.push(`/${locale}/dashboard/pages`);
         } catch (error) {
             console.error('Failed to delete:', error);
         } finally {

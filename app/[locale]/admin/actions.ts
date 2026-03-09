@@ -3,11 +3,17 @@
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
+import { detectPreferredLocale } from '@/i18n/locale-utils';
 
 export async function updateUserStatus(formData: FormData) {
     const userId = formData.get('userId') as string;
     const action = formData.get('action') as string;
     const cookieStore = await cookies();
+    const locale = detectPreferredLocale({
+        cookieLocale: cookieStore.get('NEXT_LOCALE')?.value
+    });
+    const t = await getTranslations({ locale, namespace: 'Admin' });
     const supabase = createClient(cookieStore);
 
     if (!userId || !action) {
@@ -28,12 +34,12 @@ export async function updateUserStatus(formData: FormData) {
 
         if (action === 'approve') {
             status = 'active';
-            notificationTitle = 'Account Approved';
-            notificationMessage = 'Your venue owner account has been approved! You can now list your venues.';
+            notificationTitle = t('notifications.user_approved_title');
+            notificationMessage = t('notifications.user_approved_message');
         } else if (action === 'reject') {
             status = 'rejected';
-            notificationTitle = 'Account Rejected';
-            notificationMessage = 'Your venue owner account has been rejected. Please contact support for more details.';
+            notificationTitle = t('notifications.user_rejected_title');
+            notificationMessage = t('notifications.user_rejected_message');
         }
 
         // Update Profile
@@ -64,6 +70,10 @@ export async function updateVenueStatus(formData: FormData) {
     const action = formData.get('action') as string;
     const rejectionReason = formData.get('rejectionReason') as string;
     const cookieStore = await cookies();
+    const locale = detectPreferredLocale({
+        cookieLocale: cookieStore.get('NEXT_LOCALE')?.value
+    });
+    const t = await getTranslations({ locale, namespace: 'Admin' });
     const supabase = createClient(cookieStore);
 
     if (!venueId || !action) {
@@ -85,15 +95,15 @@ export async function updateVenueStatus(formData: FormData) {
 
         if (action === 'approve') {
             status = 'published';
-            notificationTitle = 'Venue Approved';
-            notificationMessage = 'Your venue has been approved and is now live on the marketplace!';
+            notificationTitle = t('notifications.venue_approved_title');
+            notificationMessage = t('notifications.venue_approved_message');
             notificationType = 'success';
         } else if (action === 'reject') {
             status = 'rejected';
-            notificationTitle = 'Venue Rejected';
+            notificationTitle = t('notifications.venue_rejected_title');
             notificationMessage = rejectionReason
-                ? `Your venue has been rejected. Reason: ${rejectionReason}`
-                : 'Your venue has been rejected. Please check the guidelines and try again.';
+                ? t('notifications.venue_rejected_message_with_reason', { reason: rejectionReason })
+                : t('notifications.venue_rejected_message');
             notificationType = 'error';
         }
 

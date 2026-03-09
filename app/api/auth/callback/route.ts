@@ -1,13 +1,19 @@
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { detectPreferredLocale } from '@/i18n/locale-utils';
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url);
+    const { searchParams } = new URL(request.url);
     const code = searchParams.get('code');
+    const cookieStore = await cookies();
+    const locale = detectPreferredLocale({
+        cookieLocale: cookieStore.get('NEXT_LOCALE')?.value,
+        referer: request.headers.get('referer'),
+        acceptLanguage: request.headers.get('accept-language')
+    });
 
     if (code) {
-        const cookieStore = await cookies();
         const supabase = createClient(cookieStore);
         const { error } = await supabase.auth.exchangeCodeForSession(code);
 
@@ -22,8 +28,6 @@ export async function GET(request: Request) {
                     .eq('id', user.id)
                     .single();
 
-                // Detect locale from referer or default to 'fr'
-                const locale = 'fr';
                 const appOrigin = 'https://app.ahjazliqaati.com';
 
                 if (profile?.role === 'admin') {
@@ -34,10 +38,10 @@ export async function GET(request: Request) {
             }
 
             // Fallback: user exists but no profile yet
-            return NextResponse.redirect(`https://app.ahjazliqaati.com/fr/dashboard`);
+            return NextResponse.redirect(`https://app.ahjazliqaati.com/${locale}/dashboard`);
         }
     }
 
     // Return the user to an error page with instructions
-    return NextResponse.redirect(`https://app.ahjazliqaati.com/fr/login?error=auth_callback_error`);
+    return NextResponse.redirect(`https://app.ahjazliqaati.com/${locale}/login?error=auth_callback_error`);
 }

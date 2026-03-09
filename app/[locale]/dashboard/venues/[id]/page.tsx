@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { uploadVenueImages } from '@/lib/supabase/storage';
 import { formatBytes } from '@/lib/media-optimizer';
@@ -206,6 +207,7 @@ const AmenityTag = ({
 // --- Main Component ---
 
 export default function EditVenuePage() {
+    const locale = useLocale();
     const router = useRouter();
     const params = useParams();
     const id = params?.id as string;
@@ -637,7 +639,7 @@ export default function EditVenuePage() {
                         {/* Preview Card */}
                         <div className="rounded-xl overflow-hidden border border-slate-200">
                             {/* Cover Image */}
-                            <div className="aspect-video bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center relative">
+                            <div className="aspect-video bg-linear-to-br from-primary-100 to-primary-200 flex items-center justify-center relative">
                                 {formData.images[0] ? (
                                     <img src={formData.images[0]} alt="" className="w-full h-full object-cover" />
                                 ) : (
@@ -718,7 +720,7 @@ export default function EditVenuePage() {
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center gap-4">
                             <button
-                                onClick={() => router.push('/dashboard/venues')}
+                                onClick={() => router.push(`/${locale}/dashboard/venues`)}
                                 className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
                             >
                                 <ArrowLeft className="w-5 h-5" />

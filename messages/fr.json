@@ -301,6 +301,30 @@
             "title": "Tableau de Bord Admin",
             "subtitle": "Surveillez et gérez votre plateforme"
         },
+        "labels": {
+            "joined": "Inscrit"
+        },
+        "roles": {
+            "admin": "Admin",
+            "venue_owner": "Propriétaire de salle",
+            "user": "Utilisateur"
+        },
+        "fallbacks": {
+            "unknown_owner": "Propriétaire inconnu",
+            "unknown_user": "Utilisateur inconnu",
+            "this_venue": "cette salle"
+        },
+        "notifications": {
+            "user_approved_title": "Compte approuvé",
+            "user_approved_message": "Votre compte propriétaire de salle a été approuvé. Vous pouvez maintenant publier vos salles.",
+            "user_rejected_title": "Compte rejeté",
+            "user_rejected_message": "Votre compte propriétaire de salle a été rejeté. Contactez le support pour plus d'informations.",
+            "venue_approved_title": "Salle approuvée",
+            "venue_approved_message": "Votre salle a été approuvée et est maintenant visible sur la marketplace.",
+            "venue_rejected_title": "Salle rejetée",
+            "venue_rejected_message": "Votre salle a été rejetée. Vérifiez les consignes puis réessayez.",
+            "venue_rejected_message_with_reason": "Votre salle a été rejetée. Raison : {reason}"
+        },
         "status": {
             "pending": "En Attente",
             "approved": "Approuvé",

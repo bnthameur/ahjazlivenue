@@ -301,6 +301,30 @@
             "title": "لوحة تحكم المشرف",
             "subtitle": "راقب وأدر منصتك"
         },
+        "labels": {
+            "joined": "انضم"
+        },
+        "roles": {
+            "admin": "مشرف",
+            "venue_owner": "مالك قاعة",
+            "user": "مستخدم"
+        },
+        "fallbacks": {
+            "unknown_owner": "مالك غير معروف",
+            "unknown_user": "مستخدم غير معروف",
+            "this_venue": "هذه القاعة"
+        },
+        "notifications": {
+            "user_approved_title": "تمت الموافقة على الحساب",
+            "user_approved_message": "تمت الموافقة على حسابك كمالك قاعة. يمكنك الآن نشر قاعاتك.",
+            "user_rejected_title": "تم رفض الحساب",
+            "user_rejected_message": "تم رفض حسابك كمالك قاعة. يرجى التواصل مع الدعم لمزيد من التفاصيل.",
+            "venue_approved_title": "تمت الموافقة على القاعة",
+            "venue_approved_message": "تمت الموافقة على قاعتك وأصبحت الآن ظاهرة على المنصة.",
+            "venue_rejected_title": "تم رفض القاعة",
+            "venue_rejected_message": "تم رفض قاعتك. يرجى مراجعة الإرشادات ثم المحاولة مرة أخرى.",
+            "venue_rejected_message_with_reason": "تم رفض قاعتك. السبب: {reason}"
+        },
         "status": {
             "pending": "قيد الانتظار",
             "approved": "موافق عليه",
