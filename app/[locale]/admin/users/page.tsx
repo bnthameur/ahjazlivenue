@@ -10,12 +10,11 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
     const resolvedParams = await searchParams;
-    const statusFilter = (resolvedParams?.status as string) || 'pending';
+    const statusFilter = (resolvedParams?.status as string) || 'all';
 
     const { data: users, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('status', statusFilter)
         .eq('role', 'venue_owner')
         .order('created_at', { ascending: false });
 

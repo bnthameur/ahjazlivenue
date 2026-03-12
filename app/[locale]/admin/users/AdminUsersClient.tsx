@@ -18,6 +18,11 @@ interface User {
 export default function AdminUsersClient({ initialUsers, statusFilter }: { initialUsers: User[], statusFilter: string }) {
     const t = useTranslations('Admin');
     const [users, setUsers] = useState(initialUsers);
+    const [currentFilter, setCurrentFilter] = useState(statusFilter);
+
+    const filteredUsers = currentFilter === 'all' 
+        ? users 
+        : users.filter(u => u.status === currentFilter);
 
     const getStatusBadge = (status: string) => {
         const badges = {
@@ -55,31 +60,31 @@ export default function AdminUsersClient({ initialUsers, statusFilter }: { initi
 
             {/* Filter Tabs */}
             <div className="flex gap-4 mb-6 border-b border-slate-200 overflow-x-auto">
-                {['pending', 'active', 'rejected'].map((status) => (
-                    <Link
+                {['all', 'pending', 'active', 'rejected'].map((status) => (
+                    <button
                         key={status}
-                        href={`/admin/users?status=${status}`}
-                        className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors capitalize whitespace-nowrap ${statusFilter === status
+                        onClick={() => setCurrentFilter(status)}
+                        className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors capitalize whitespace-nowrap ${currentFilter === status
                             ? 'border-primary-600 text-primary-600'
                             : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                             }`}
                     >
-                        {t(`status.${status}`)}
-                    </Link>
+                        {status === 'all' ? (t.has('status.all') ? t('status.all') : 'All') : t(`status.${status}`)}
+                    </button>
                 ))}
             </div>
 
             {/* Users Grid - Mobile Responsive */}
             <div className="grid grid-cols-1 gap-4">
-                {users?.length === 0 ? (
+                {filteredUsers?.length === 0 ? (
                     <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                         <div className="mb-4 opacity-50 flex justify-center">
                             <Emoji name="bust-in-silhouette" width={48} />
                         </div>
-                        <p className="text-slate-500">{t('users.no_users', { status: t(`status.${statusFilter}`) })}</p>
+                        <p className="text-slate-500">{t('users.no_users', { status: currentFilter === 'all' ? 'All' : t(`status.${currentFilter}`) })}</p>
                     </div>
                 ) : (
-                    users?.map((user) => (
+                    filteredUsers?.map((user) => (
                         <div key={user.id} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 {/* User Info */}
@@ -103,7 +108,7 @@ export default function AdminUsersClient({ initialUsers, statusFilter }: { initi
                                 <div className="flex flex-col sm:items-end gap-3">
                                     {getStatusBadge(user.status)}
                                     <div className="flex flex-wrap gap-2">
-                                        {statusFilter !== 'active' && (
+                                        {currentFilter !== 'active' && user.status !== 'active' && (
                                             <form action={updateUserStatus}>
                                                 <input type="hidden" name="userId" value={user.id} />
                                                 <input type="hidden" name="action" value="approve" />
@@ -113,7 +118,7 @@ export default function AdminUsersClient({ initialUsers, statusFilter }: { initi
                                                 </button>
                                             </form>
                                         )}
-                                        {statusFilter !== 'rejected' && (
+                                        {currentFilter !== 'rejected' && user.status !== 'rejected' && (
                                             <form action={updateUserStatus}>
                                                 <input type="hidden" name="userId" value={user.id} />
                                                 <input type="hidden" name="action" value="reject" />

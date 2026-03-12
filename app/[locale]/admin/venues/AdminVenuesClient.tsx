@@ -27,6 +27,11 @@ interface Venue {
 export default function AdminVenuesClient({ initialVenues, statusFilter }: { initialVenues: Venue[], statusFilter: string }) {
     const t = useTranslations('Admin');
     const [venues, setVenues] = useState(initialVenues);
+    const [currentFilter, setCurrentFilter] = useState(statusFilter);
+
+    const filteredVenues = currentFilter === 'all' 
+        ? venues 
+        : venues.filter(v => v.status === currentFilter);
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
@@ -79,31 +84,31 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
 
                 {/* Filter Tabs */}
                 <div className="flex gap-4 mb-6 border-b border-slate-200 overflow-x-auto">
-                    {['pending', 'published', 'rejected'].map((status) => (
-                        <Link
+                    {['all', 'pending', 'published', 'rejected'].map((status) => (
+                        <button
                             key={status}
-                            href={`/admin/venues?status=${status}`}
-                            className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors capitalize whitespace-nowrap ${statusFilter === status
+                            onClick={() => setCurrentFilter(status)}
+                            className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors capitalize whitespace-nowrap ${currentFilter === status
                                 ? 'border-primary-600 text-primary-600'
                                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                                 }`}
                         >
-                            {t(`status.${status}`)}
-                        </Link>
+                            {status === 'all' ? (t.has('status.all') ? t('status.all') : 'All') : t(`status.${status}`)}
+                        </button>
                     ))}
                 </div>
 
                 {/* Venues Grid - Mobile Responsive */}
                 <div className="grid grid-cols-1 gap-4">
-                    {venues?.length === 0 ? (
+                    {filteredVenues?.length === 0 ? (
                         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
                             <div className="mb-4 opacity-50 flex justify-center">
                                 <Emoji name="classical-building" width={48} />
                             </div>
-                            <p className="text-slate-500">{t('venues.no_venues', { status: t(`status.${statusFilter}`) })}</p>
+                            <p className="text-slate-500">{t('venues.no_venues', { status: currentFilter === 'all' ? 'All' : t(`status.${currentFilter}`) })}</p>
                         </div>
                     ) : (
-                        venues?.map((venue) => (
+                        filteredVenues?.map((venue) => (
                             <div key={venue.id} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     {/* Image */}
@@ -155,7 +160,7 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
 
                                         {/* Actions */}
                                         <div className="flex flex-wrap gap-2">
-                                            {statusFilter !== 'published' && (
+                                            {currentFilter !== 'published' && venue.status !== 'published' && (
                                                 <form action={updateVenueStatus}>
                                                     <input type="hidden" name="venueId" value={venue.id} />
                                                     <input type="hidden" name="action" value="approve" />
@@ -165,7 +170,7 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                                     </button>
                                                 </form>
                                             )}
-                                            {statusFilter !== 'rejected' && (
+                                            {currentFilter !== 'rejected' && venue.status !== 'rejected' && (
                                                 <button
                                                     onClick={() => handleReject(venue)}
                                                     className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-sm font-medium transition-colors"

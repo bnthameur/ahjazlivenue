@@ -4,15 +4,17 @@ import AdminVenuesClient from './AdminVenuesClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminVenuesPage({ searchParams }: { searchParams: { status?: string } }) {
+type PageProps = { searchParams: Promise<{ [key: string]: string | string[] | undefined }> };
+
+export default async function AdminVenuesPage({ searchParams }: PageProps) {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
-    const statusFilter = searchParams.status || 'pending';
+    const resolvedParams = await searchParams;
+    const statusFilter = (resolvedParams?.status as string) || 'all';
 
     const { data: venues, error } = await supabase
         .from('venues')
         .select('*, profiles(full_name, email)')
-        .eq('status', statusFilter)
         .order('created_at', { ascending: false });
 
     if (error) {

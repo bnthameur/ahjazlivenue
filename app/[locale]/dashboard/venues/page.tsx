@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Link } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -19,9 +20,10 @@ const statusColors = {
 export default function VenuesPage() {
     const supabase = createClient();
     const { t } = useLanguage();
+    const searchParams = useSearchParams();
     const [venues, setVenues] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<string>('all');
+    const [filter, setFilter] = useState<string>(searchParams.get('status') || 'all');
 
     useEffect(() => {
         fetchVenues();
