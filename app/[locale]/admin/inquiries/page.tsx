@@ -58,7 +58,11 @@ export default async function AdminInquiriesPage() {
                                 {inquiry.venues && (
                                     <div className="p-2 bg-slate-50 rounded-lg">
                                         <p className="text-xs text-slate-500">{t('inquiries.fields.venue')}:</p>
-                                        <p className="text-sm font-medium text-slate-700">{inquiry.venues.title || inquiry.venues.name}</p>
+                                        <p className="text-sm font-medium text-slate-700">
+                                            {Array.isArray(inquiry.venues) 
+                                                ? (inquiry.venues[0]?.title || inquiry.venues[0]?.name) 
+                                                : (inquiry.venues.title || inquiry.venues.name)}
+                                        </p>
                                     </div>
                                 )}
 
@@ -70,7 +74,7 @@ export default async function AdminInquiriesPage() {
                                 {/* Venue Owner Info */}
                                 {inquiry.profiles && (
                                     <div className="text-xs text-slate-500">
-                                        {t('inquiries.fields.owner')}: {inquiry.profiles.full_name} ({inquiry.profiles.email})
+                                        {t('inquiries.fields.owner')}: {Array.isArray(inquiry.profiles) ? inquiry.profiles[0]?.full_name : inquiry.profiles.full_name} ({Array.isArray(inquiry.profiles) ? inquiry.profiles[0]?.email : inquiry.profiles.email})
                                     </div>
                                 )}
                             </div>
