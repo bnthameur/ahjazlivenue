@@ -213,8 +213,7 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                                 </button>
                                             )}
                                             <Link
-                                                href={`/dashboard/venues/${venue.id}`}
-                                                target="_blank"
+                                                href={`/admin/venues/${venue.id}`}
                                                 className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors"
                                             >
                                                 <Emoji name="eyes" width={14} className="inline mr-1" />

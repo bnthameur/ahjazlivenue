@@ -1,187 +1,308 @@
 import { createClient } from '@/lib/supabase/server';
 import { Link } from '@/i18n/navigation';
-import ClientEmoji from '@/components/ClientEmoji';
+
 import { updateUserStatus } from '../../actions';
 import { cookies } from 'next/headers';
+import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminUserDetailPage({ params }: { params: { id: string } }) {
+type PageProps = { params: Promise<{ id: string }> };
+
+function StatusBadge({ status }: { status: string }) {
+    const map: Record<string, string> = {
+        active: 'bg-green-100 text-green-700 border-green-200',
+        pending: 'bg-orange-100 text-orange-700 border-orange-200',
+        rejected: 'bg-red-100 text-red-700 border-red-200',
+    };
+    return (
+        <span className={`px-3 py-1 rounded-full text-sm font-medium border ${map[status] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+        </span>
+    );
+}
+
+export default async function AdminUserDetailPage({ params }: PageProps) {
+    const { id } = await params;
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
-    const userId = params.id;
 
-    // Fetch User Profile with Venues and Inquiries (deep fetching might need separate queries if relationships not perfect)
-    // Supabase can do deep joins but RLS must allow it.
-    // Fetch Profile
+    // Fetch profile
     const { data: profile } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', id)
         .single();
 
-    // Fetch Venues
+    if (!profile) notFound();
+
+    // Fetch owned venues
     const { data: venues } = await supabase
         .from('venues')
-        .select('*')
-        .eq('owner_id', userId)
+        .select('id, title, name, location, status, images, created_at, is_featured')
+        .eq('owner_id', id)
         .order('created_at', { ascending: false });
 
-    // Fetch Inquiries for this user's venues
-    // We can join through venues
-    const { data: venuesWithInquiries } = await supabase
-        .from('venues')
-        .select('id, title, inquiries(*)')
-        .eq('owner_id', userId);
+    // Fetch inquiries from both tables for this user's venues
+    const venueIds = (venues || []).map(v => v.id);
 
-    // Flatten inquiries
-    const inquiries = venuesWithInquiries?.flatMap(v =>
-        (v.inquiries as any[])?.map(i => ({ ...i, venue_title: v.title }))
-    ) || [];
+    let allInquiries: Array<{
+        id: string;
+        source: string;
+        customerName: string;
+        message: string;
+        venueName: string;
+        createdAt: string;
+    }> = [];
 
-    if (!profile) {
-        return <div className="p-8">User not found</div>;
+    if (venueIds.length > 0) {
+        const [{ data: inquiriesData }, { data: contactData }] = await Promise.all([
+            supabase
+                .from('inquiries')
+                .select('id, customer_name, name, message, venue_id, created_at')
+                .in('venue_id', venueIds)
+                .order('created_at', { ascending: false })
+                .limit(30),
+            supabase
+                .from('contact_inquiries')
+                .select('id, customer_name, message, venue_id, created_at')
+                .in('venue_id', venueIds)
+                .order('created_at', { ascending: false })
+                .limit(30),
+        ]);
+
+        const venueMap: Record<string, string> = {};
+        (venues || []).forEach(v => { venueMap[v.id] = v.title || v.name || 'Unknown venue'; });
+
+        allInquiries = [
+            ...(inquiriesData || []).map(i => ({
+                id: i.id,
+                source: 'Platform',
+                customerName: i.customer_name || i.name || 'Unknown',
+                message: i.message || '',
+                venueName: venueMap[i.venue_id] || '—',
+                createdAt: i.created_at,
+            })),
+            ...(contactData || []).map(i => ({
+                id: i.id,
+                source: 'Direct',
+                customerName: i.customer_name || 'Unknown',
+                message: i.message || '',
+                venueName: venueMap[i.venue_id] || '—',
+                createdAt: i.created_at,
+            })),
+        ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
-    const { full_name, email, phone, business_name, description, status, role, created_at, avatar_url } = profile;
+    const { full_name, email, phone, business_name, business_description, status, role, created_at, avatar_url } = profile;
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8">
-            {/* Header / Actions */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div>
-                    <Link href="/admin/users" className="text-sm text-slate-500 hover:text-slate-900 mb-2 inline-flex items-center gap-1">
-                        ← Back to Users
-                    </Link>
-                    <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                        {full_name}
-                        <span className={`px-2 py-1 rounded-full text-sm font-medium border ${status === 'active' ? 'bg-green-50 text-green-700 border-green-200' :
-                                status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
-                                    'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}>
-                            {status.toUpperCase()}
-                        </span>
-                    </h1>
-                </div>
+        <div className="p-4 sm:p-6 max-w-5xl">
+            {/* Back navigation */}
+            <div className="mb-6">
+                <Link
+                    href="/admin/users"
+                    className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors mb-4"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to Users
+                </Link>
 
-                <div className="flex gap-3">
-                    {status !== 'active' && (
-                        <form action={updateUserStatus}>
-                            <input type="hidden" name="userId" value={userId} />
-                            <input type="hidden" name="action" value="approve" />
-                            <button type="submit" className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors shadow-sm">
-                                Approve Account
-                            </button>
-                        </form>
-                    )}
-                    {status !== 'rejected' && (
-                        <form action={updateUserStatus}>
-                            <input type="hidden" name="userId" value={userId} />
-                            <input type="hidden" name="action" value="reject" />
-                            <button type="submit" className="px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors">
-                                Reject Account
-                            </button>
-                        </form>
-                    )}
-                </div>
-            </div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        {avatar_url ? (
+                            <img src={avatar_url} alt={full_name || ''} className="w-14 h-14 rounded-full object-cover border border-slate-200" />
+                        ) : (
+                            <div className="w-14 h-14 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-xl font-bold shrink-0">
+                                {full_name?.[0]?.toUpperCase() || 'U'}
+                            </div>
+                        )}
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900">{full_name || 'Unknown User'}</h1>
+                            <div className="flex items-center gap-2 mt-1">
+                                <StatusBadge status={status} />
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{role}</span>
+                            </div>
+                        </div>
+                    </div>
 
-            {/* Profile Info */}
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 font-medium text-slate-700 flex items-center gap-2">
-                    <ClientEmoji name="bust-in-silhouette" width={20} />
-                    Profile Information
-                </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div>
-                        <div className="text-sm text-slate-500 mb-1">Email</div>
-                        <div className="font-medium text-slate-900">{email}</div>
-                    </div>
-                    <div>
-                        <div className="text-sm text-slate-500 mb-1">Phone</div>
-                        <div className="font-medium text-slate-900">{phone || 'N/A'}</div>
-                    </div>
-                    <div>
-                        <div className="text-sm text-slate-500 mb-1">Joined</div>
-                        <div className="font-medium text-slate-900">{new Date(created_at).toLocaleDateString()}</div>
-                    </div>
-                    <div>
-                        <div className="text-sm text-slate-500 mb-1">Business Name</div>
-                        <div className="font-medium text-slate-900">{business_name || 'N/A'}</div>
-                    </div>
-                    <div className="col-span-1 md:col-span-2">
-                        <div className="text-sm text-slate-500 mb-1">About</div>
-                        <div className="font-medium text-slate-900">{description || 'No description provided.'}</div>
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-3">
+                        {status !== 'active' && (
+                            <form action={updateUserStatus}>
+                                <input type="hidden" name="userId" value={id} />
+                                <input type="hidden" name="action" value="approve" />
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                >
+                                    ✅
+                                    Approve Account
+                                </button>
+                            </form>
+                        )}
+                        {status !== 'rejected' && (
+                            <form action={updateUserStatus}>
+                                <input type="hidden" name="userId" value={id} />
+                                <input type="hidden" name="action" value="reject" />
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                                >
+                                    ❌
+                                    Reject Account
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* Venues Section */}
-            <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <ClientEmoji name="classical-building" width={24} />
-                    Venues ({venues?.length || 0})
-                </h2>
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                    {venues?.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500 text-sm">No venues created yet.</div>
-                    ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: Profile + Venues */}
+                <div className="lg:col-span-2 space-y-6">
+                    {/* Profile Info */}
+                    <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 font-semibold text-slate-800">
+                            👤
+                            Profile Information
+                        </div>
+                        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1">Email</p>
+                                <p className="font-medium text-slate-900">{email || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1">Phone</p>
+                                <p className="font-medium text-slate-900">{phone || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1">Business Name</p>
+                                <p className="font-medium text-slate-900">{business_name || '—'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-slate-500 mb-1">Member Since</p>
+                                <p className="font-medium text-slate-900">{new Date(created_at).toLocaleDateString()}</p>
+                            </div>
+                            {business_description && (
+                                <div className="col-span-full">
+                                    <p className="text-xs text-slate-500 mb-1">Business Description</p>
+                                    <p className="text-sm text-slate-700 leading-relaxed">{business_description}</p>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Venues */}
+                    <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-semibold text-slate-800">
+                                🏛️
+                                Venues
+                            </div>
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{venues?.length || 0} total</span>
+                        </div>
                         <div className="divide-y divide-slate-100">
-                            {venues?.map(venue => (
-                                <div key={venue.id} className="p-4 flex items-center justify-between hover:bg-slate-50">
-                                    <div className="flex items-center gap-4">
+                            {!venues || venues.length === 0 ? (
+                                <div className="p-8 text-center text-slate-500 text-sm">No venues created yet.</div>
+                            ) : (
+                                venues.map(venue => (
+                                    <div key={venue.id} className="p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
                                         {venue.images?.[0] ? (
-                                            <img src={venue.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-slate-100" />
+                                            <img src={venue.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover bg-slate-100 shrink-0" />
                                         ) : (
-                                            <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center text-xl">🏠</div>
+                                            <div className="w-12 h-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                                                🏛️
+                                            </div>
                                         )}
-                                        <div>
-                                            <div className="font-semibold text-slate-900">{venue.title}</div>
-                                            <div className="text-xs text-slate-500">{venue.location}</div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-slate-900 truncate">{venue.title || venue.name}</p>
+                                            <p className="text-xs text-slate-500 truncate">{venue.location}</p>
+                                        </div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                                venue.status === 'published' ? 'bg-green-100 text-green-700' :
+                                                venue.status === 'pending' ? 'bg-orange-100 text-orange-700' :
+                                                'bg-red-100 text-red-700'
+                                            }`}>
+                                                {venue.status}
+                                            </span>
+                                            <Link
+                                                href={`/admin/venues/${venue.id}`}
+                                                className="text-xs text-primary-600 hover:text-primary-800 font-medium"
+                                            >
+                                                View
+                                            </Link>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${venue.status === 'published' ? 'bg-green-100 text-green-700' :
-                                                venue.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                                                    'bg-slate-100 text-slate-600'
-                                            }`}>
-                                            {venue.status}
-                                        </span>
-                                        {/* Simple link to admin venues list - ideally detail view for venue too */}
-                                        <Link href={`/admin/venues?search=${venue.title}`} className="text-sm text-primary-600 hover:underline">
-                                            Manage
-                                        </Link>
-                                    </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
-                    )}
-                </div>
-            </div>
+                    </section>
 
-            {/* Inquiries Section */}
-            <div>
-                <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
-                    <ClientEmoji name="speech-balloon" width={24} />
-                    Inquiries ({inquiries?.length || 0})
-                </h2>
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                    {inquiries?.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500 text-sm">No inquiries received yet.</div>
-                    ) : (
-                        <div className="divide-y divide-slate-100">
-                            {inquiries.map((inquiry: any) => (
-                                <div key={inquiry.id} className="p-4">
-                                    <div className="flex justify-between mb-1">
-                                        <span className="text-xs font-bold text-slate-500 uppercase">For: {inquiry.venue_title}</span>
-                                        <span className="text-xs text-slate-400">{new Date(inquiry.created_at).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="font-medium text-slate-900 mb-0.5">{inquiry.customer_name}</div>
-                                    <div className="text-slate-600 text-sm line-clamp-2">{inquiry.message}</div>
-                                </div>
-                            ))}
+                    {/* Inquiries */}
+                    <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-semibold text-slate-800">
+                                💬
+                                Recent Inquiries
+                            </div>
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{allInquiries.length} total</span>
                         </div>
-                    )}
+                        <div className="divide-y divide-slate-100">
+                            {allInquiries.length === 0 ? (
+                                <div className="p-8 text-center text-slate-500 text-sm">No inquiries received yet.</div>
+                            ) : (
+                                allInquiries.map(inquiry => (
+                                    <div key={`${inquiry.source}-${inquiry.id}`} className="p-4">
+                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                            <div>
+                                                <p className="font-medium text-slate-900">{inquiry.customerName}</p>
+                                                <p className="text-xs text-slate-500">For: {inquiry.venueName}</p>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1 shrink-0">
+                                                <span className="text-xs text-slate-400">{new Date(inquiry.createdAt).toLocaleDateString()}</span>
+                                                <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">{inquiry.source}</span>
+                                            </div>
+                                        </div>
+                                        {inquiry.message && (
+                                            <p className="text-sm text-slate-600 line-clamp-2 mt-1">{inquiry.message}</p>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </section>
+                </div>
+
+                {/* Right: Quick stats */}
+                <div className="space-y-4">
+                    <section className="bg-white rounded-xl border border-slate-200 p-5">
+                        <p className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                            📈
+                            Summary
+                        </p>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">Total venues</span>
+                                <span className="font-bold text-slate-900">{venues?.length || 0}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">Published</span>
+                                <span className="font-bold text-green-600">{venues?.filter(v => v.status === 'published').length || 0}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">Pending</span>
+                                <span className="font-bold text-orange-600">{venues?.filter(v => v.status === 'pending').length || 0}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-slate-500">Total inquiries</span>
+                                <span className="font-bold text-slate-900">{allInquiries.length}</span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>

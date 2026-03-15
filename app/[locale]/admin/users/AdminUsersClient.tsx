@@ -165,6 +165,13 @@ export default function AdminUsersClient({ initialUsers, statusFilter }: { initi
                                                     {t('users.reject')}
                                                 </button>
                                             )}
+                                            <Link
+                                                href={`/admin/users/${user.id}`}
+                                                className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors"
+                                            >
+                                                <Emoji name="eyes" width={14} className="inline mr-1" />
+                                                {t.has('users.view') ? t('users.view') : 'View'}
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>
