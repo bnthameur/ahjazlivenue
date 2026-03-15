@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
-import { uploadVenueImages } from '@/lib/supabase/storage';
+import { uploadVenueImages, uploadVenueVideo, VenueMediaRecord, VideoUploadProgress } from '@/lib/supabase/storage';
 import { formatBytes } from '@/lib/media-optimizer';
 import { useTranslations, useLocale } from 'next-intl';
 import { WILAYAS, getWilayaLabel, getWilayas } from '@/lib/wilayas';
@@ -44,7 +44,10 @@ import {
     Loader2,
     CheckCircle2,
     Star,
-    AlertCircle
+    AlertCircle,
+    Video,
+    Play,
+    Trash2
 } from 'lucide-react';
 
 // --- Types & Constants ---
@@ -359,6 +362,12 @@ export default function NewVenuePage() {
     const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
     const [optimizationStats, setOptimizationStats] = useState<{ saved: string; percent: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [videos, setVideos] = useState<VenueMediaRecord[]>([]);
+    const [videoUploading, setVideoUploading] = useState(false);
+    const [videoUploadProgress, setVideoUploadProgress] = useState<VideoUploadProgress | null>(null);
+    const [videoError, setVideoError] = useState<string | null>(null);
+    // Temp venue id for new venue video uploads - created on first video upload
+    const tempVenueIdRef = useRef<string>(`temp_venue_${Date.now()}`);
     
     const categories = useMemo(() => getCategories(t), [t]);
     const wilayas = useMemo(() => getWilayas(t), [t]);
@@ -482,6 +491,33 @@ export default function NewVenuePage() {
 
     const removeImage = (idx: number) => {
         setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
+    };
+
+    const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        const file = e.target.files[0];
+        if (!file.type.startsWith('video/')) return;
+
+        setVideoUploading(true);
+        setVideoError(null);
+        setVideoUploadProgress(null);
+
+        try {
+            const result = await uploadVenueVideo(file, tempVenueIdRef.current, (progress) => {
+                setVideoUploadProgress(progress);
+            });
+            setVideos(prev => [...prev, result.mediaRecord]);
+        } catch (err: any) {
+            setVideoError('Error uploading video: ' + err.message);
+        } finally {
+            setVideoUploading(false);
+            setVideoUploadProgress(null);
+            e.target.value = '';
+        }
+    };
+
+    const removeVideo = (videoId: string) => {
+        setVideos(prev => prev.filter(v => v.id !== videoId));
     };
 
     // Fixed submission using API route
@@ -822,6 +858,105 @@ export default function NewVenuePage() {
                         progress={uploadProgress}
                         t={t}
                     />
+                </div>
+
+                {/* Videos Section */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex items-start justify-between mb-3 sm:mb-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                Videos
+                            </label>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                Upload a video tour of your venue (MP4, WebM, MOV — max 50MB)
+                            </p>
+                        </div>
+                        <label className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors shrink-0 ${
+                            videoUploading
+                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                : 'bg-violet-600 text-white cursor-pointer hover:bg-violet-700'
+                        }`}>
+                            <Video className="w-3.5 h-3.5" />
+                            Add Video
+                            <input
+                                type="file"
+                                accept="video/*"
+                                onChange={handleVideoUpload}
+                                className="hidden"
+                                disabled={videoUploading}
+                            />
+                        </label>
+                    </div>
+
+                    {/* Video Upload Progress */}
+                    {videoUploading && (
+                        <div className="mb-3 p-3 bg-violet-50 border border-violet-200 rounded-xl">
+                            <div className="flex items-center gap-2 mb-1.5">
+                                <Loader2 className="w-4 h-4 text-violet-600 animate-spin shrink-0" />
+                                <p className="text-xs text-violet-700 font-medium">
+                                    {videoUploadProgress?.stage === 'generating-thumbnail' && 'Generating thumbnail...'}
+                                    {videoUploadProgress?.stage === 'uploading-video' && 'Uploading video...'}
+                                    {videoUploadProgress?.stage === 'uploading-thumbnail' && 'Uploading thumbnail...'}
+                                    {videoUploadProgress?.stage === 'saving-record' && 'Saving...'}
+                                    {!videoUploadProgress && 'Processing...'}
+                                </p>
+                            </div>
+                            <div className="h-1.5 bg-violet-200 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-violet-600 rounded-full transition-all duration-300"
+                                    style={{ width: `${videoUploadProgress?.progress ?? 10}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {videoError && (
+                        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                            <p className="text-xs text-red-700">{videoError}</p>
+                        </div>
+                    )}
+
+                    {videos.length === 0 && !videoUploading ? (
+                        <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl">
+                            <Video className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                            <p className="text-sm text-slate-400">No videos yet</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            {videos.map((video) => (
+                                <div
+                                    key={video.id}
+                                    className="group relative aspect-video rounded-xl overflow-hidden bg-slate-900 ring-1 ring-slate-200"
+                                >
+                                    {video.thumbnail_url ? (
+                                        <img
+                                            src={video.thumbnail_url}
+                                            alt="Video thumbnail"
+                                            className="w-full h-full object-cover opacity-80"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center">
+                                            <Video className="w-8 h-8 text-slate-500" />
+                                        </div>
+                                    )}
+                                    {/* Play overlay */}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div className="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center shadow">
+                                            <Play className="w-4 h-4 text-slate-800 ml-0.5" fill="currentColor" />
+                                        </div>
+                                    </div>
+                                    {/* Remove button */}
+                                    <button
+                                        type="button"
+                                        onClick={() => removeVideo(video.id)}
+                                        className="absolute top-1.5 right-1.5 p-1.5 bg-white/90 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-white"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </motion.div>

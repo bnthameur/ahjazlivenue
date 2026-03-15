@@ -174,6 +174,68 @@ export async function updatePlatformSetting(formData: FormData) {
     }
 }
 
+export async function updateReceiptStatus(formData: FormData): Promise<void> {
+    const receiptId = formData.get('receiptId') as string;
+    const action = formData.get('action') as string; // 'approve' | 'reject'
+    const adminNote = formData.get('adminNote') as string;
+
+    if (!receiptId || !action) return;
+
+    const admin = await getAdminClient();
+    if (!admin) return;
+    const { supabase, user } = admin;
+
+    try {
+        const status = action === 'approve' ? 'approved' : 'rejected';
+
+        const { data: receipt, error: receiptError } = await supabase
+            .from('payment_receipts')
+            .update({
+                status,
+                admin_note: adminNote || null,
+                reviewed_at: new Date().toISOString(),
+                reviewed_by: user.id,
+            })
+            .eq('id', receiptId)
+            .select('user_id, amount')
+            .single();
+
+        if (receiptError) throw receiptError;
+
+        // If approved, also activate the user's account if currently pending
+        if (action === 'approve' && receipt?.user_id) {
+            await supabase
+                .from('profiles')
+                .update({ status: 'active' })
+                .eq('id', receipt.user_id)
+                .eq('status', 'pending');
+        }
+
+        // Send notification to the user
+        if (receipt?.user_id) {
+            const notificationTitle = action === 'approve'
+                ? 'Payment Approved'
+                : 'Payment Rejected';
+            const notificationMessage = action === 'approve'
+                ? `Your payment of ${receipt.amount} DZD has been approved. Your account is now active.`
+                : `Your payment receipt has been rejected.${adminNote ? ' Reason: ' + adminNote : ''}`;
+
+            await supabase.from('notifications').insert({
+                recipient_id: receipt.user_id,
+                sender_id: user.id,
+                title: notificationTitle,
+                message: notificationMessage,
+                type: action === 'approve' ? 'success' : 'error',
+            });
+        }
+
+        revalidatePath('/admin/users');
+        revalidatePath('/admin/payments');
+    } catch (error: any) {
+        console.error('Error updating receipt status:', error);
+    }
+}
+
 export async function toggleVenueFeatured(formData: FormData) {
     const venueId = formData.get('venueId') as string;
     const isFeatured = formData.get('isFeatured') === 'true';

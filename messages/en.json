@@ -294,6 +294,7 @@
             "dashboard": "Dashboard",
             "venues": "Venues",
             "users": "Users",
+            "payments": "Payments",
             "inquiries": "Inquiries",
             "settings": "Settings"
         },

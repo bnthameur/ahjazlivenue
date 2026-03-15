@@ -6,14 +6,14 @@ import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
-import { uploadVenueImages } from '@/lib/supabase/storage';
+import { uploadVenueImages, uploadVenueVideo, deleteVenueVideo, fetchVenueMedia, VenueMediaRecord, VideoUploadProgress } from '@/lib/supabase/storage';
 import { formatBytes } from '@/lib/media-optimizer';
 import {
     Building2, PartyPopper, Users, TreeDeciduous, Home, Hotel, Utensils, Moon,
     Upload, X, Check, ChevronRight, MapPin, Phone, Mail, Facebook, Instagram,
     Camera, Sparkles, Car, Wind, Speaker, Lightbulb, ChefHat, Wifi, Accessibility,
     Music, Flower2, Waves, Sun, ImageIcon, Loader2, CheckCircle2, Star,
-    Save, Eye, AlertCircle, ArrowLeft, Trash2
+    Save, Eye, AlertCircle, ArrowLeft, Trash2, Video, Play
 } from 'lucide-react';
 
 // --- Types & Constants ---
@@ -217,6 +217,9 @@ export default function EditVenuePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [videoUploading, setVideoUploading] = useState(false);
+    const [videoUploadProgress, setVideoUploadProgress] = useState<VideoUploadProgress | null>(null);
+    const [videos, setVideos] = useState<VenueMediaRecord[]>([]);
     const [hasChanges, setHasChanges] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
     
@@ -244,11 +247,10 @@ export default function EditVenuePage() {
     useEffect(() => {
         const fetchVenue = async () => {
             try {
-                const { data, error } = await supabase
-                    .from('venues')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
+                const [{ data, error }, venueMedia] = await Promise.all([
+                    supabase.from('venues').select('*').eq('id', id).single(),
+                    fetchVenueMedia(id, 'video').catch(() => [] as VenueMediaRecord[]),
+                ]);
 
                 if (error) throw error;
                 if (data) {
@@ -272,6 +274,7 @@ export default function EditVenuePage() {
                         status: data.status || 'pending',
                     });
                 }
+                setVideos(venueMedia);
             } catch (error) {
                 console.error('Error fetching venue:', error);
             } finally {
@@ -281,6 +284,41 @@ export default function EditVenuePage() {
 
         if (id) fetchVenue();
     }, [id]);
+
+    const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.length) return;
+        const file = e.target.files[0];
+        if (!file.type.startsWith('video/')) return;
+
+        setVideoUploading(true);
+        setVideoUploadProgress(null);
+        try {
+            const result = await uploadVenueVideo(file, id, (progress) => {
+                setVideoUploadProgress(progress);
+            });
+            setVideos(prev => [...prev, result.mediaRecord]);
+        } catch (error: any) {
+            alert(`Error uploading video: ${error.message}`);
+        } finally {
+            setVideoUploading(false);
+            setVideoUploadProgress(null);
+            // Reset input
+            e.target.value = '';
+        }
+    };
+
+    const handleDeleteVideo = async (mediaRecord: VenueMediaRecord) => {
+        if (!confirm('Delete this video?')) return;
+        try {
+            // Extract storage path from URL (everything after the bucket prefix)
+            const urlParts = mediaRecord.url.split('/venue-images/');
+            const storagePath = urlParts[1] || '';
+            await deleteVenueVideo(mediaRecord.id, storagePath);
+            setVideos(prev => prev.filter(v => v.id !== mediaRecord.id));
+        } catch (error: any) {
+            alert(`Error deleting video: ${error.message}`);
+        }
+    };
 
     const updateField = useCallback((field: string, value: string | string[]) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -497,8 +535,9 @@ export default function EditVenuePage() {
 
     const renderPhotosTab = () => (
         <div className="space-y-6">
-            <SectionCard 
-                title="Photo Gallery" 
+            {/* Images Section */}
+            <SectionCard
+                title="Photo Gallery"
                 description="Upload high-quality photos of your venue"
                 action={
                     <label className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg cursor-pointer hover:bg-primary-700 transition-colors flex items-center gap-2">
@@ -514,6 +553,12 @@ export default function EditVenuePage() {
                     </label>
                 }
             >
+                {uploading && (
+                    <div className="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-xl flex items-center gap-3">
+                        <Loader2 className="w-4 h-4 text-primary-600 animate-spin shrink-0" />
+                        <p className="text-sm text-primary-700 font-medium">Uploading photos...</p>
+                    </div>
+                )}
                 {formData.images.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl">
                         <Camera className="w-12 h-12 text-slate-300 mx-auto mb-3" />
@@ -544,6 +589,106 @@ export default function EditVenuePage() {
                                         Cover
                                     </div>
                                 )}
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
+            </SectionCard>
+
+            {/* Videos Section */}
+            <SectionCard
+                title="Video Gallery"
+                description="Upload videos to showcase your venue (MP4, WebM, MOV — max 50MB each)"
+                action={
+                    <label className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${
+                        videoUploading
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            : 'bg-violet-600 text-white cursor-pointer hover:bg-violet-700'
+                    }`}>
+                        <Video className="w-4 h-4" />
+                        Add Video
+                        <input
+                            type="file"
+                            accept="video/*"
+                            onChange={handleVideoUpload}
+                            className="hidden"
+                            disabled={videoUploading}
+                        />
+                    </label>
+                }
+            >
+                {/* Upload Progress */}
+                {videoUploading && (
+                    <div className="mb-4 p-4 bg-violet-50 border border-violet-200 rounded-xl">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Loader2 className="w-4 h-4 text-violet-600 animate-spin shrink-0" />
+                            <p className="text-sm text-violet-700 font-medium">
+                                {videoUploadProgress?.stage === 'generating-thumbnail' && 'Generating thumbnail...'}
+                                {videoUploadProgress?.stage === 'uploading-video' && 'Uploading video...'}
+                                {videoUploadProgress?.stage === 'uploading-thumbnail' && 'Uploading thumbnail...'}
+                                {videoUploadProgress?.stage === 'saving-record' && 'Saving...'}
+                                {!videoUploadProgress && 'Processing...'}
+                            </p>
+                        </div>
+                        <div className="h-1.5 bg-violet-200 rounded-full overflow-hidden">
+                            <div
+                                className="h-full bg-violet-600 rounded-full transition-all duration-300"
+                                style={{ width: `${videoUploadProgress?.progress ?? 0}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {videos.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl">
+                        <Video className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No videos yet</p>
+                        <p className="text-sm text-slate-400">Upload a video tour of your venue</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        {videos.map((video) => (
+                            <motion.div
+                                key={video.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="group relative aspect-video rounded-xl overflow-hidden bg-slate-900 ring-1 ring-slate-200"
+                            >
+                                {/* Thumbnail */}
+                                {video.thumbnail_url ? (
+                                    <img
+                                        src={video.thumbnail_url}
+                                        alt="Video thumbnail"
+                                        className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                                        <Video className="w-10 h-10 text-slate-500" />
+                                    </div>
+                                )}
+
+                                {/* Play icon overlay */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <a
+                                        href={video.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <Play className="w-5 h-5 text-slate-800 ml-0.5" fill="currentColor" />
+                                    </a>
+                                </div>
+
+                                {/* Delete button */}
+                                <button
+                                    type="button"
+                                    onClick={() => handleDeleteVideo(video)}
+                                    className="absolute top-2 right-2 p-2 bg-white/90 text-red-500 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </motion.div>
                         ))}
                     </div>
@@ -690,10 +835,14 @@ export default function EditVenuePage() {
                         </div>
 
                         {/* Stats */}
-                        <div className="grid grid-cols-3 gap-2 mt-4">
+                        <div className="grid grid-cols-4 gap-2 mt-4">
                             <div className="text-center p-3 bg-slate-50 rounded-lg">
                                 <div className="text-lg font-bold text-slate-900">{formData.images.length}</div>
                                 <div className="text-xs text-slate-500">Photos</div>
+                            </div>
+                            <div className="text-center p-3 bg-slate-50 rounded-lg">
+                                <div className="text-lg font-bold text-slate-900">{videos.length}</div>
+                                <div className="text-xs text-slate-500">Videos</div>
                             </div>
                             <div className="text-center p-3 bg-slate-50 rounded-lg">
                                 <div className="text-lg font-bold text-slate-900">{formData.amenities.length}</div>
@@ -777,8 +926,8 @@ export default function EditVenuePage() {
                             active={activeTab === 'photos'}
                             onClick={() => setActiveTab('photos')}
                             icon={Camera}
-                            label="Photos"
-                            badge={formData.images.length}
+                            label="Media"
+                            badge={formData.images.length + videos.length}
                         />
                         <TabButton
                             active={activeTab === 'contact'}

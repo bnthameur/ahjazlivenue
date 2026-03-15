@@ -221,6 +221,266 @@ export async function listSessionAssets(sessionId: string): Promise<string[]> {
     });
 }
 
+export interface VenueMediaRecord {
+    id: string;
+    venue_id: string;
+    media_type: 'image' | 'video';
+    url: string;
+    thumbnail_url: string | null;
+    caption: string | null;
+    display_order: number;
+    is_cover: boolean;
+    created_at: string;
+}
+
+export interface VideoUploadResult {
+    mediaRecord: VenueMediaRecord;
+    publicUrl: string;
+    thumbnailUrl: string | null;
+    filename: string;
+}
+
+export interface VideoUploadProgress {
+    stage: 'generating-thumbnail' | 'uploading-video' | 'uploading-thumbnail' | 'saving-record';
+    progress: number; // 0-100
+}
+
+/**
+ * Generate a thumbnail from a video file by capturing the first frame at ~1 second.
+ * Returns a JPEG blob at 60% quality.
+ */
+export async function generateVideoThumbnail(videoFile: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        const video = document.createElement('video');
+        const objectUrl = URL.createObjectURL(videoFile);
+
+        video.preload = 'metadata';
+        video.muted = true;
+        video.playsInline = true;
+
+        video.onloadedmetadata = () => {
+            // Seek to 1 second, or halfway if video is shorter than 2 seconds
+            const seekTime = video.duration >= 2 ? 1 : video.duration / 2;
+            video.currentTime = seekTime;
+        };
+
+        video.onseeked = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 360;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error('Could not get canvas context'));
+                return;
+            }
+
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(
+                (blob) => {
+                    URL.revokeObjectURL(objectUrl);
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('Failed to generate thumbnail blob'));
+                    }
+                },
+                'image/jpeg',
+                0.6
+            );
+        };
+
+        video.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Failed to load video for thumbnail generation'));
+        };
+
+        video.src = objectUrl;
+    });
+}
+
+const VENUE_VIDEOS_BUCKET = 'venue-images'; // reuse same bucket, different prefix
+
+const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+
+/**
+ * Upload a venue video with auto-generated thumbnail.
+ * Validates file type and size, generates a thumbnail from the first frame,
+ * uploads both video and thumbnail to Supabase storage, and inserts a
+ * row in the venue_media table.
+ */
+export async function uploadVenueVideo(
+    videoFile: File,
+    venueId: string,
+    onProgress?: (progress: VideoUploadProgress) => void
+): Promise<VideoUploadResult> {
+    const supabase = createClient();
+
+    // Validate file type
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
+    if (!allowedTypes.includes(videoFile.type) && !videoFile.type.startsWith('video/')) {
+        throw new Error(`Unsupported video type: ${videoFile.type}. Supported: mp4, webm, mov`);
+    }
+
+    // Validate file size
+    if (videoFile.size > MAX_VIDEO_SIZE_BYTES) {
+        const sizeMB = (videoFile.size / (1024 * 1024)).toFixed(1);
+        throw new Error(`Video file too large: ${sizeMB}MB. Maximum allowed size is 50MB.`);
+    }
+
+    const timestamp = Date.now();
+    const sanitizedName = videoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const videoPath = `${venueId}/videos/${timestamp}_${sanitizedName}`;
+    const thumbnailPath = `${venueId}/videos/thumbs/${timestamp}_thumb.jpg`;
+
+    // Step 1: Generate thumbnail
+    onProgress?.({ stage: 'generating-thumbnail', progress: 0 });
+    let thumbnailBlob: Blob | null = null;
+    try {
+        thumbnailBlob = await generateVideoThumbnail(videoFile);
+    } catch (err) {
+        console.warn('Thumbnail generation failed, continuing without thumbnail:', err);
+    }
+    onProgress?.({ stage: 'generating-thumbnail', progress: 100 });
+
+    // Step 2: Upload video
+    onProgress?.({ stage: 'uploading-video', progress: 0 });
+    const { error: videoError } = await supabase.storage
+        .from(VENUE_VIDEOS_BUCKET)
+        .upload(videoPath, videoFile, {
+            contentType: videoFile.type,
+            cacheControl: '31536000',
+        });
+
+    if (videoError) {
+        throw new Error(`Failed to upload video: ${videoError.message}`);
+    }
+    onProgress?.({ stage: 'uploading-video', progress: 100 });
+
+    const { data: { publicUrl: videoPublicUrl } } = supabase.storage
+        .from(VENUE_VIDEOS_BUCKET)
+        .getPublicUrl(videoPath);
+
+    // Step 3: Upload thumbnail (if generated)
+    let thumbnailPublicUrl: string | null = null;
+    if (thumbnailBlob) {
+        onProgress?.({ stage: 'uploading-thumbnail', progress: 0 });
+        const { error: thumbError } = await supabase.storage
+            .from(VENUE_VIDEOS_BUCKET)
+            .upload(thumbnailPath, thumbnailBlob, {
+                contentType: 'image/jpeg',
+                cacheControl: '31536000',
+            });
+
+        if (!thumbError) {
+            const { data: { publicUrl } } = supabase.storage
+                .from(VENUE_VIDEOS_BUCKET)
+                .getPublicUrl(thumbnailPath);
+            thumbnailPublicUrl = publicUrl;
+        } else {
+            console.warn('Thumbnail upload failed:', thumbError.message);
+        }
+        onProgress?.({ stage: 'uploading-thumbnail', progress: 100 });
+    }
+
+    // Step 4: Insert venue_media record
+    onProgress?.({ stage: 'saving-record', progress: 0 });
+
+    // Get the current max display_order for this venue
+    const { data: existingMedia } = await supabase
+        .from('venue_media')
+        .select('display_order')
+        .eq('venue_id', venueId)
+        .order('display_order', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    const nextOrder = existingMedia ? (existingMedia.display_order ?? 0) + 1 : 0;
+
+    const { data: mediaRecord, error: dbError } = await supabase
+        .from('venue_media')
+        .insert({
+            venue_id: venueId,
+            media_type: 'video',
+            url: videoPublicUrl,
+            thumbnail_url: thumbnailPublicUrl,
+            display_order: nextOrder,
+            is_cover: false,
+        })
+        .select()
+        .single();
+
+    if (dbError) {
+        // Try to clean up uploaded files
+        await supabase.storage.from(VENUE_VIDEOS_BUCKET).remove([videoPath]);
+        if (thumbnailPublicUrl) {
+            await supabase.storage.from(VENUE_VIDEOS_BUCKET).remove([thumbnailPath]);
+        }
+        throw new Error(`Failed to save video record: ${dbError.message}`);
+    }
+
+    onProgress?.({ stage: 'saving-record', progress: 100 });
+
+    return {
+        mediaRecord: mediaRecord as VenueMediaRecord,
+        publicUrl: videoPublicUrl,
+        thumbnailUrl: thumbnailPublicUrl,
+        filename: videoPath,
+    };
+}
+
+/**
+ * Delete a venue video from storage and the venue_media table
+ */
+export async function deleteVenueVideo(mediaId: string, filePath: string): Promise<void> {
+    const supabase = createClient();
+
+    // Delete from DB first
+    const { error: dbError } = await supabase
+        .from('venue_media')
+        .delete()
+        .eq('id', mediaId);
+
+    if (dbError) {
+        throw new Error(`Failed to delete video record: ${dbError.message}`);
+    }
+
+    // Delete from storage (best-effort, don't throw if file missing)
+    const storageFilename = filePath.split('/').pop();
+    if (storageFilename) {
+        const venueId = filePath.split('/')[0];
+        await supabase.storage
+            .from(VENUE_VIDEOS_BUCKET)
+            .remove([filePath])
+            .catch(() => {}); // non-critical
+    }
+}
+
+/**
+ * Fetch all venue_media records for a venue, optionally filtered by type
+ */
+export async function fetchVenueMedia(
+    venueId: string,
+    mediaType?: 'image' | 'video'
+): Promise<VenueMediaRecord[]> {
+    const supabase = createClient();
+
+    let query = supabase
+        .from('venue_media')
+        .select('*')
+        .eq('venue_id', venueId)
+        .order('display_order', { ascending: true });
+
+    if (mediaType) {
+        query = query.eq('media_type', mediaType);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Failed to fetch venue media: ${error.message}`);
+    return (data || []) as VenueMediaRecord[];
+}
+
 /**
  * Delete a venue image
  */

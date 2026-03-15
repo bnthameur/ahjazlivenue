@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { Link } from '@/i18n/navigation';
 
-import { updateUserStatus } from '../../actions';
+import { updateUserStatus, updateReceiptStatus } from '../../actions';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 
@@ -14,9 +14,25 @@ function StatusBadge({ status }: { status: string }) {
         active: 'bg-green-100 text-green-700 border-green-200',
         pending: 'bg-orange-100 text-orange-700 border-orange-200',
         rejected: 'bg-red-100 text-red-700 border-red-200',
+        approved: 'bg-green-100 text-green-700 border-green-200',
+        expired: 'bg-slate-100 text-slate-600 border-slate-200',
+        cancelled: 'bg-red-100 text-red-700 border-red-200',
     };
     return (
         <span className={`px-3 py-1 rounded-full text-sm font-medium border ${map[status] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+        </span>
+    );
+}
+
+function ReceiptStatusBadge({ status }: { status: string }) {
+    const map: Record<string, string> = {
+        pending: 'bg-orange-100 text-orange-700 border-orange-200',
+        approved: 'bg-green-100 text-green-700 border-green-200',
+        rejected: 'bg-red-100 text-red-700 border-red-200',
+    };
+    return (
+        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${map[status] || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
             {status.charAt(0).toUpperCase() + status.slice(1)}
         </span>
     );
@@ -41,6 +57,38 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
         .from('venues')
         .select('id, title, name, location, status, images, created_at, is_featured')
         .eq('owner_id', id)
+        .order('created_at', { ascending: false });
+
+    // Fetch subscription with plan info
+    const { data: subscription } = await supabase
+        .from('user_subscriptions')
+        .select(`
+            id,
+            status,
+            started_at,
+            expires_at,
+            created_at,
+            subscription_plans (
+                id,
+                name,
+                name_ar,
+                price_monthly,
+                price_yearly,
+                max_venues,
+                max_images_per_venue,
+                max_videos_per_venue
+            )
+        `)
+        .eq('user_id', id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    // Fetch payment receipts
+    const { data: receipts } = await supabase
+        .from('payment_receipts')
+        .select('*')
+        .eq('user_id', id)
         .order('created_at', { ascending: false });
 
     // Fetch inquiries from both tables for this user's venues
@@ -95,6 +143,8 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
     }
 
     const { full_name, email, phone, business_name, business_description, status, role, created_at, avatar_url } = profile;
+
+    const plan = subscription?.subscription_plans as any;
 
     return (
         <div className="p-4 sm:p-6 max-w-5xl">
@@ -161,7 +211,7 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left: Profile + Venues */}
+                {/* Left: Profile + Venues + Subscription + Receipts */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Profile Info */}
                     <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -191,6 +241,157 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
                                     <p className="text-xs text-slate-500 mb-1">Business Description</p>
                                     <p className="text-sm text-slate-700 leading-relaxed">{business_description}</p>
                                 </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Subscription & Payments */}
+                    <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 font-semibold text-slate-800">
+                            💳
+                            Subscription &amp; Payments
+                        </div>
+                        <div className="p-5">
+                            {subscription && plan ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Plan</p>
+                                        <p className="font-semibold text-slate-900">{plan.name}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Status</p>
+                                        <StatusBadge status={subscription.status} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Started</p>
+                                        <p className="font-medium text-slate-900">
+                                            {subscription.started_at ? new Date(subscription.started_at).toLocaleDateString() : '—'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Expires</p>
+                                        <p className="font-medium text-slate-900">
+                                            {subscription.expires_at ? new Date(subscription.expires_at).toLocaleDateString() : '—'}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Max Venues</p>
+                                        <p className="font-medium text-slate-900">{plan.max_venues ?? '—'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-slate-500 mb-1">Monthly Price</p>
+                                        <p className="font-medium text-slate-900">
+                                            {plan.price_monthly != null ? `${plan.price_monthly.toLocaleString()} DZD` : '—'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="py-6 text-center">
+                                    <p className="text-slate-400 text-sm">No active subscription</p>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    {/* Payment Receipts */}
+                    <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-2 font-semibold text-slate-800">
+                                🧾
+                                Payment Receipts
+                            </div>
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">
+                                {receipts?.length || 0} total
+                            </span>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {!receipts || receipts.length === 0 ? (
+                                <div className="p-8 text-center text-slate-500 text-sm">No payment receipts found.</div>
+                            ) : (
+                                receipts.map(receipt => (
+                                    <div key={receipt.id} className="p-4">
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                                            {/* Receipt Thumbnail */}
+                                            <div className="shrink-0">
+                                                {receipt.receipt_url ? (
+                                                    <a
+                                                        href={receipt.receipt_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="block w-20 h-20 rounded-lg overflow-hidden border border-slate-200 hover:border-primary-400 transition-colors group relative"
+                                                    >
+                                                        <img
+                                                            src={receipt.receipt_url}
+                                                            alt="Receipt"
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                            <span className="opacity-0 group-hover:opacity-100 text-white text-xs font-medium">View</span>
+                                                        </div>
+                                                    </a>
+                                                ) : (
+                                                    <div className="w-20 h-20 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 text-2xl">
+                                                        🧾
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Receipt Info */}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                    <ReceiptStatusBadge status={receipt.status} />
+                                                    <span className="text-xs text-slate-500">
+                                                        {new Date(receipt.created_at).toLocaleDateString('en-GB', {
+                                                            day: '2-digit', month: 'short', year: 'numeric'
+                                                        })}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                                                    <span className="text-slate-900 font-semibold">
+                                                        {receipt.amount != null ? `${Number(receipt.amount).toLocaleString()} DZD` : '—'}
+                                                    </span>
+                                                    {receipt.payment_method && (
+                                                        <span className="text-slate-500 capitalize">{receipt.payment_method}</span>
+                                                    )}
+                                                </div>
+                                                {receipt.admin_note && (
+                                                    <p className="text-xs text-slate-500 mt-1 italic">Note: {receipt.admin_note}</p>
+                                                )}
+                                                {receipt.reviewed_at && (
+                                                    <p className="text-xs text-slate-400 mt-0.5">
+                                                        Reviewed: {new Date(receipt.reviewed_at).toLocaleDateString()}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Actions */}
+                                            {receipt.status === 'pending' && (
+                                                <div className="flex gap-2 shrink-0">
+                                                    <form action={updateReceiptStatus}>
+                                                        <input type="hidden" name="receiptId" value={receipt.id} />
+                                                        <input type="hidden" name="action" value="approve" />
+                                                        <button
+                                                            type="submit"
+                                                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors"
+                                                        >
+                                                            ✅ Approve
+                                                        </button>
+                                                    </form>
+                                                    <form action={updateReceiptStatus}>
+                                                        <input type="hidden" name="receiptId" value={receipt.id} />
+                                                        <input type="hidden" name="action" value="reject" />
+                                                        <button
+                                                            type="submit"
+                                                            className="px-3 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs font-medium rounded-lg transition-colors"
+                                                        >
+                                                            ❌ Reject
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
                             )}
                         </div>
                     </section>
@@ -301,8 +502,41 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
                                 <span className="text-sm text-slate-500">Total inquiries</span>
                                 <span className="font-bold text-slate-900">{allInquiries.length}</span>
                             </div>
+                            <div className="border-t border-slate-100 pt-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-slate-500">Receipts</span>
+                                    <span className="font-bold text-slate-900">{receipts?.length || 0}</span>
+                                </div>
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className="text-xs text-orange-600">Pending</span>
+                                    <span className="font-semibold text-orange-600">{receipts?.filter(r => r.status === 'pending').length || 0}</span>
+                                </div>
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className="text-xs text-green-600">Approved</span>
+                                    <span className="font-semibold text-green-600">{receipts?.filter(r => r.status === 'approved').length || 0}</span>
+                                </div>
+                            </div>
                         </div>
                     </section>
+
+                    {/* Subscription Quick Info */}
+                    {subscription && plan && (
+                        <section className="bg-white rounded-xl border border-slate-200 p-5">
+                            <p className="font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                                💳
+                                Current Plan
+                            </p>
+                            <div className="text-center p-3 bg-primary-50 rounded-lg">
+                                <p className="text-lg font-bold text-primary-700">{plan.name}</p>
+                                <StatusBadge status={subscription.status} />
+                                {subscription.expires_at && (
+                                    <p className="text-xs text-slate-500 mt-2">
+                                        Expires {new Date(subscription.expires_at).toLocaleDateString()}
+                                    </p>
+                                )}
+                            </div>
+                        </section>
+                    )}
                 </div>
             </div>
         </div>
