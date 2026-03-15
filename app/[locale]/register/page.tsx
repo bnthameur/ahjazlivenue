@@ -4,8 +4,10 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { Link } from '@/i18n/navigation';
+import { useTranslations } from 'next-intl';
 
 export default function RegisterPage() {
+    const t = useTranslations('Register');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
@@ -25,6 +27,8 @@ export default function RegisterPage() {
         }
     };
 
+    const features = ['easy_listing', 'calendar', 'payments', 'analytics'] as const;
+
     return (
         <div className="min-h-screen flex">
             {/* Left Side - Register Form */}
@@ -37,15 +41,14 @@ export default function RegisterPage() {
                 >
                     {/* Logo */}
                     <div className="flex items-center gap-2">
-                        {/* <img src="/logo.svg" alt="Logo" className="h-8" /> */}
-                        <span className="text-2xl font-bold text-slate-800">Event Venue Marketplace</span>
+                        <span className="text-2xl font-bold text-slate-800">{t('brand')}</span>
                     </div>
 
                     {/* Welcome Text */}
                     <div>
-                        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">List your venue</h1>
+                        <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">{t('title')}</h1>
                         <p className="mt-2 text-slate-600">
-                            Create an account to start managing your venue listings and receiving inquiries.
+                            {t('subtitle')}
                         </p>
                     </div>
 
@@ -73,20 +76,20 @@ export default function RegisterPage() {
                             </svg>
                         )}
                         <span className="text-base font-medium text-slate-700 group-hover:text-slate-900">
-                            {isLoading ? 'Creating account...' : 'Continue with Google'}
+                            {isLoading ? t('creating') : t('google_btn')}
                         </span>
                     </button>
 
                     {/* Sign In Link */}
                     <p className="text-center text-slate-600">
-                        Already have an account?{' '}
+                        {t('has_account')}{' '}
                         <Link href="/login" className="font-semibold text-primary-600 hover:text-primary-700">
-                            Sign in
+                            {t('login_link')}
                         </Link>
                     </p>
 
                     <div className="mt-8 text-center text-xs text-slate-400">
-                        &copy; {new Date().getFullYear()} Event Venue Marketplace. All rights reserved.
+                        &copy; {new Date().getFullYear()} {t('brand')}
                     </div>
                 </motion.div>
             </div>
@@ -104,14 +107,14 @@ export default function RegisterPage() {
                 >
                     <div className="max-w-lg">
                         <h2 className="text-3xl xl:text-4xl font-bold text-white mb-6">
-                            Showcase your venue to millions
+                            {t('hero_title')}
                         </h2>
                         <p className="text-slate-200 text-lg leading-relaxed mb-8">
-                            Join thousands of venue owners growing their business with our platform.
+                            {t('hero_desc')}
                         </p>
 
                         <div className="space-y-4">
-                            {['Easy listing management', 'Integrated calendar', 'Secure payments', 'Performance analytics'].map((feature, index) => (
+                            {features.map((feature, index) => (
                                 <motion.div
                                     key={index}
                                     initial={{ opacity: 0, x: 20 }}
@@ -124,7 +127,7 @@ export default function RegisterPage() {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                         </svg>
                                     </div>
-                                    <span className="text-white font-medium">{feature}</span>
+                                    <span className="text-white font-medium">{t(`features.${feature}`)}</span>
                                 </motion.div>
                             ))}
                         </div>

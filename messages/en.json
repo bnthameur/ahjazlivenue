@@ -245,12 +245,14 @@
         "In_Guezzam": "In Guezzam"
     },
     "Login": {
+        "brand": "Ahjaz Liqaati",
         "welcome_title": "Welcome back",
         "welcome_subtitle": "Sign in to manage your venues or find the perfect space.",
         "google_btn": "Continue with Google",
         "signing_in": "Signing in...",
         "no_account": "Don't have an account?",
         "register_link": "List your venue",
+        "auth_error": "Authentication error. Please try again.",
         "hero_title": "Find the perfect space for your next event",
         "hero_desc": "From weddings to corporate conferences, discover and book unique venues across the country.",
         "features": {
@@ -258,6 +260,23 @@
             "direct": "Direct contact with owners",
             "secure": "Secure booking",
             "support": "Customer support"
+        }
+    },
+    "Register": {
+        "brand": "Ahjaz Liqaati",
+        "title": "List your venue",
+        "subtitle": "Create an account to start managing your venue listings and receiving inquiries.",
+        "google_btn": "Continue with Google",
+        "creating": "Creating account...",
+        "has_account": "Already have an account?",
+        "login_link": "Sign in",
+        "hero_title": "Showcase your venue to millions",
+        "hero_desc": "Join thousands of venue owners growing their business with our platform.",
+        "features": {
+            "easy_listing": "Easy listing management",
+            "calendar": "Integrated calendar",
+            "payments": "Secure payments",
+            "analytics": "Performance analytics"
         }
     },
     "dashboard": {

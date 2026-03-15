@@ -46,7 +46,7 @@ function LoginContent() {
                     {/* Logo */}
                     <div className="flex items-center gap-2">
                         {/* <img src="/logo.svg" alt="Logo" className="h-8" /> */}
-                        <span className="text-2xl font-bold text-slate-800">Event Venue Marketplace</span>
+                        <span className="text-2xl font-bold text-slate-800">{t('brand')}</span>
                     </div>
 
                     {/* Welcome Text */}
@@ -60,7 +60,7 @@ function LoginContent() {
                     {/* Error Message */}
                     {(error || errorParam) && (
                         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-                            {error || 'Authentication error. Please try again.'}
+                            {error || t('auth_error')}
                         </div>
                     )}
 
@@ -94,7 +94,7 @@ function LoginContent() {
                     </p>
 
                     <div className="mt-8 text-center text-xs text-slate-400">
-                        &copy; {new Date().getFullYear()} Event Venue Marketplace. All rights reserved.
+                        &copy; {new Date().getFullYear()} {t('brand')}
                     </div>
                 </motion.div>
             </div>

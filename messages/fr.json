@@ -245,12 +245,14 @@
         "In_Guezzam": "In Guezzam"
     },
     "Login": {
+        "brand": "Ahjaz Liqaati",
         "welcome_title": "Bon retour",
         "welcome_subtitle": "Connectez-vous pour gérer vos lieux ou trouver l'espace idéal.",
         "google_btn": "Continuer avec Google",
         "signing_in": "Connexion...",
         "no_account": "Pas encore de compte ?",
         "register_link": "Listez votre lieu",
+        "auth_error": "Erreur d'authentification. Veuillez réessayer.",
         "hero_title": "Trouvez l'espace parfait pour votre prochain événement",
         "hero_desc": "Des mariages aux conférences d'entreprise, découvrez et réservez des lieux uniques à travers le pays.",
         "features": {
@@ -258,6 +260,23 @@
             "direct": "Contact direct avec les propriétaires",
             "secure": "Réservation sécurisée",
             "support": "Support client"
+        }
+    },
+    "Register": {
+        "brand": "Ahjaz Liqaati",
+        "title": "Référencez votre lieu",
+        "subtitle": "Créez un compte pour commencer à gérer vos annonces et recevoir des demandes.",
+        "google_btn": "Continuer avec Google",
+        "creating": "Création du compte...",
+        "has_account": "Vous avez déjà un compte ?",
+        "login_link": "Se connecter",
+        "hero_title": "Présentez votre lieu à des millions de personnes",
+        "hero_desc": "Rejoignez des milliers de propriétaires de lieux qui développent leur activité grâce à notre plateforme.",
+        "features": {
+            "easy_listing": "Gestion facile des annonces",
+            "calendar": "Calendrier intégré",
+            "payments": "Paiements sécurisés",
+            "analytics": "Analyses de performance"
         }
     },
     "dashboard": {
