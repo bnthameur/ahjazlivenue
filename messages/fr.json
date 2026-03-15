@@ -359,6 +359,14 @@
             "approve": "Approuver",
             "reject": "Rejeter",
             "view": "Voir le Profil"
+        },
+        "inquiries": {
+            "title": "Demandes",
+            "no_inquiries": "Aucune demande pour le moment.",
+            "fields": {
+                "venue": "Salle",
+                "owner": "Propriétaire"
+            }
         }
     }
 }

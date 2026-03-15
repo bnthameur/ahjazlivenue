@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { updateVenueStatus } from '../actions';
 import { Emoji } from 'react-apple-emojis';
@@ -26,38 +26,69 @@ interface Venue {
 
 export default function AdminVenuesClient({ initialVenues, statusFilter }: { initialVenues: Venue[], statusFilter: string }) {
     const t = useTranslations('Admin');
+    const router = useRouter();
     const [venues, setVenues] = useState(initialVenues);
     const [currentFilter, setCurrentFilter] = useState(statusFilter);
-
-    const filteredVenues = currentFilter === 'all' 
-        ? venues 
-        : venues.filter(v => v.status === currentFilter);
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
     const [rejectionReason, setRejectionReason] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [actionFeedback, setActionFeedback] = useState<{ venueId: string; type: 'success' | 'error'; message: string } | null>(null);
+    const [isPending, startTransition] = useTransition();
+
+    const filteredVenues = currentFilter === 'all'
+        ? venues
+        : venues.filter(v => v.status === currentFilter);
 
     const handleReject = (venue: Venue) => {
         setSelectedVenue(venue);
         setShowRejectModal(true);
     };
 
+    const showFeedback = (venueId: string, type: 'success' | 'error', message: string) => {
+        setActionFeedback({ venueId, type, message });
+        setTimeout(() => setActionFeedback(null), 3000);
+    };
+
+    const handleApprove = async (venue: Venue) => {
+        const formData = new FormData();
+        formData.append('venueId', venue.id);
+        formData.append('action', 'approve');
+
+        // Optimistic update
+        setVenues(prev => prev.map(v =>
+            v.id === venue.id ? { ...v, status: 'published' as const } : v
+        ));
+        showFeedback(venue.id, 'success', t('venues.approve'));
+
+        await updateVenueStatus(formData);
+        startTransition(() => { router.refresh(); });
+    };
+
     const submitRejection = async () => {
         if (!selectedVenue || !rejectionReason.trim()) return;
-
         setIsSubmitting(true);
+
         const formData = new FormData();
         formData.append('venueId', selectedVenue.id);
         formData.append('action', 'reject');
         formData.append('rejectionReason', rejectionReason);
 
-        await updateVenueStatus(formData);
+        const venueId = selectedVenue.id;
+
+        // Optimistic update
+        setVenues(prev => prev.map(v =>
+            v.id === venueId ? { ...v, status: 'rejected' as const, rejection_reason: rejectionReason } : v
+        ));
 
         setShowRejectModal(false);
         setRejectionReason('');
         setSelectedVenue(null);
         setIsSubmitting(false);
-        window.location.reload();
+        showFeedback(venueId, 'success', t('venues.reject'));
+
+        await updateVenueStatus(formData);
+        startTransition(() => { router.refresh(); });
     };
 
     const getStatusBadge = (status: string) => {
@@ -77,6 +108,15 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
 
     return (
         <>
+            {/* Global feedback toast */}
+            {actionFeedback && (
+                <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium animate-in slide-in-from-top-2 ${
+                    actionFeedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+                }`}>
+                    {actionFeedback.message}
+                </div>
+            )}
+
             <div>
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-2xl font-bold text-slate-900">{t('venues.title')}</h1>
@@ -98,7 +138,7 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                     ))}
                 </div>
 
-                {/* Venues Grid - Mobile Responsive */}
+                {/* Venues Grid */}
                 <div className="grid grid-cols-1 gap-4">
                     {filteredVenues?.length === 0 ? (
                         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
@@ -109,7 +149,9 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                         </div>
                     ) : (
                         filteredVenues?.map((venue) => (
-                            <div key={venue.id} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 hover:shadow-md transition-shadow">
+                            <div key={venue.id} className={`bg-white rounded-xl border border-slate-200 p-4 sm:p-6 hover:shadow-md transition-all ${
+                                actionFeedback?.venueId === venue.id ? 'ring-2 ring-green-300' : ''
+                            }`}>
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     {/* Image */}
                                     <div className="flex-shrink-0">
@@ -132,26 +174,17 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                             {getStatusBadge(venue.status)}
                                         </div>
 
-                                        {/* Owner Info */}
                                         <div className="mb-3">
                                             <p className="text-sm font-medium text-slate-700">{venue.profiles?.full_name || t('fallbacks.unknown_owner')}</p>
                                             <p className="text-xs text-slate-500">{venue.profiles?.email}</p>
                                         </div>
 
-                                        {/* Details */}
                                         <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
-                                            <div>
-                                                <span className="font-medium">{t('venues.price')}:</span> {venue.price ? `${venue.price} DZD` : t('venues.contact_price')}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">{t('venues.capacity')}:</span> {venue.capacity} {t('venues.guests')}
-                                            </div>
-                                            <div>
-                                                <span className="font-medium">{t('venues.submitted')}:</span> {new Date(venue.created_at).toLocaleDateString()}
-                                            </div>
+                                            <div><span className="font-medium">{t('venues.price')}:</span> {venue.price ? `${venue.price} DZD` : t('venues.contact_price')}</div>
+                                            <div><span className="font-medium">{t('venues.capacity')}:</span> {venue.capacity} {t('venues.guests')}</div>
+                                            <div><span className="font-medium">{t('venues.submitted')}:</span> {new Date(venue.created_at).toLocaleDateString()}</div>
                                         </div>
 
-                                        {/* Rejection Reason */}
                                         {venue.status === 'rejected' && venue.rejection_reason && (
                                             <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
                                                 <span className="font-medium">{t('venues.rejection_reason')}:</span> {venue.rejection_reason}
@@ -161,14 +194,14 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                         {/* Actions */}
                                         <div className="flex flex-wrap gap-2">
                                             {currentFilter !== 'published' && venue.status !== 'published' && (
-                                                <form action={updateVenueStatus}>
-                                                    <input type="hidden" name="venueId" value={venue.id} />
-                                                    <input type="hidden" name="action" value="approve" />
-                                                    <button type="submit" className="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-sm font-medium transition-colors">
-                                                        <Emoji name="check-mark-button" width={14} className="inline mr-1" />
-                                                        {t('venues.approve')}
-                                                    </button>
-                                                </form>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleApprove(venue)}
+                                                    className="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-sm font-medium transition-colors"
+                                                >
+                                                    <Emoji name="check-mark-button" width={14} className="inline mr-1" />
+                                                    {t('venues.approve')}
+                                                </button>
                                             )}
                                             {currentFilter !== 'rejected' && venue.status !== 'rejected' && (
                                                 <button

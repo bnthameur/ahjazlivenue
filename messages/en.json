@@ -359,6 +359,14 @@
             "approve": "Approve",
             "reject": "Reject",
             "view": "View Profile"
+        },
+        "inquiries": {
+            "title": "Inquiries",
+            "no_inquiries": "No inquiries yet.",
+            "fields": {
+                "venue": "Venue",
+                "owner": "Owner"
+            }
         }
     }
 }
