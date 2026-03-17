@@ -6,8 +6,8 @@ import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/LanguageProvider';
 import { Emoji } from 'react-apple-emojis';
-import { Link } from '@/i18n/navigation';
 import type { UserSubscriptionSummary } from '@/lib/owner-billing';
+import BillingSettingsSection from './BillingSettingsSection';
 
 interface Profile {
     id: string;
@@ -23,10 +23,34 @@ interface Profile {
 interface SettingsClientProps {
     profile: Profile | null;
     subscription: UserSubscriptionSummary | null;
+    plans: Array<{
+        id: string;
+        name: string | null;
+        name_ar?: string | null;
+        price_monthly?: number | null;
+        price_yearly?: number | null;
+        max_venues?: number | null;
+        max_images_per_venue?: number | null;
+        max_videos_per_venue?: number | null;
+    }>;
+    receipts: Array<{
+        id: string;
+        receipt_url: string | null;
+        payment_method: string | null;
+        amount: number | null;
+        status: 'pending' | 'approved' | 'rejected';
+        admin_note: string | null;
+        created_at: string;
+        reviewed_at: string | null;
+    }>;
+    settings: Array<{
+        key: string;
+        value: string | null;
+    }>;
     usage: null;
 }
 
-export default function SettingsClient({ profile, subscription }: SettingsClientProps) {
+export default function SettingsClient({ profile, subscription, plans, receipts, settings }: SettingsClientProps) {
     const supabase = createClient();
     const { t } = useLanguage();
     const [isLoading, setIsLoading] = useState(false);
@@ -57,14 +81,13 @@ export default function SettingsClient({ profile, subscription }: SettingsClient
     const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatar_url || null);
 
     const profileCompletionItems = [
-        { label: 'Full name', done: Boolean(formData.full_name.trim()) },
-        { label: 'Phone number', done: Boolean(formData.phone.trim()) },
-        { label: 'Business name', done: Boolean(formData.business_name.trim()) },
-        { label: 'Business description', done: Boolean(formData.business_description.trim()) },
+        { label: t('settings.fullname'), done: Boolean(formData.full_name.trim()) },
+        { label: t('settings.phone'), done: Boolean(formData.phone.trim()) },
+        { label: t('settings.businessname'), done: Boolean(formData.business_name.trim()) },
+        { label: t('settings.businessdesc'), done: Boolean(formData.business_description.trim()) },
     ];
 
     const completedItems = profileCompletionItems.filter((item) => item.done).length;
-    const plan = subscription?.subscription_plans;
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -169,9 +192,9 @@ export default function SettingsClient({ profile, subscription }: SettingsClient
                     <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
                         <div className="flex items-start justify-between gap-4">
                             <div>
-                                <h2 className="text-lg font-bold text-slate-900">Complete your owner setup</h2>
+                                <h2 className="text-lg font-bold text-slate-900">{t('settings.setup_title')}</h2>
                                 <p className="mt-1 text-sm text-slate-600">
-                                    Fill in your personal information and your public venue-owner profile so the admin team can review your account faster.
+                                    {t('settings.setup_desc')}
                                 </p>
                             </div>
                             <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-blue-700">
@@ -186,24 +209,13 @@ export default function SettingsClient({ profile, subscription }: SettingsClient
                                         item.done ? 'bg-green-100 text-green-700' : 'bg-white text-slate-600'
                                     }`}
                                 >
-                                    {item.done ? 'Completed' : 'Missing'}: {item.label}
+                                    {item.done ? t('settings.complete') : t('settings.missing')}: {item.label}
                                 </div>
                             ))}
                         </div>
-                        <div className="rounded-2xl border border-blue-200 bg-white p-4">
-                            <h3 className="text-sm font-semibold text-slate-900">Simple onboarding guide</h3>
-                            <div className="mt-3 space-y-2 text-sm text-slate-600">
-                                <p><span className="font-medium text-slate-900">Step 1:</span> Fill your personal information and venue-owner profile on this page.</p>
-                                <p><span className="font-medium text-slate-900">Step 2:</span> Open packs and payments to choose the right subscription.</p>
-                                <p><span className="font-medium text-slate-900">Step 3:</span> Pay online or upload your receipt, then wait for admin activation.</p>
-                            </div>
-                        </div>
-                        <Link
-                            href="/dashboard/payments"
-                            className="inline-flex w-fit items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
-                        >
-                            Open packs & payments
-                        </Link>
+                        <p className="rounded-2xl border border-blue-200 bg-white p-4 text-sm text-slate-600">
+                            {t('settings.setup_hint')}
+                        </p>
                     </div>
 
                     <h2 className="text-lg font-bold text-slate-900 mb-6">{t('settings.profile')}</h2>
@@ -239,7 +251,7 @@ export default function SettingsClient({ profile, subscription }: SettingsClient
 
                     <div className="grid gap-4 md:grid-cols-2">
                         <div className="md:col-span-2">
-                            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Personal information</h3>
+                            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t('settings.personal_section')}</h3>
                         </div>
 
                         <div className="md:col-span-2">
@@ -274,7 +286,7 @@ export default function SettingsClient({ profile, subscription }: SettingsClient
                         </div>
 
                         <div className="md:col-span-2 pt-2">
-                            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Venue owner profile</h3>
+                            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">{t('settings.business_section')}</h3>
                         </div>
 
                         <div className="md:col-span-2">
@@ -311,64 +323,13 @@ export default function SettingsClient({ profile, subscription }: SettingsClient
                     </div>
                 </div>
 
-                {subscription && (
-                    <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
-                        <h2 className="mb-6 text-lg font-bold text-slate-900">Subscription</h2>
-
-                        <div className="mb-6 flex items-center justify-between">
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-2xl font-bold capitalize text-slate-900">{plan?.name || 'Owner Pack'}</span>
-                                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${
-                                        subscription.status === 'active'
-                                            ? 'bg-green-100 text-green-700'
-                                            : subscription.status === 'trial'
-                                                ? 'bg-blue-100 text-blue-700'
-                                                : 'bg-slate-100 text-slate-700'
-                                    }`}>
-                                        {subscription.status || 'pending'}
-                                    </span>
-                                </div>
-                                {plan?.price_monthly ? (
-                                    <p className="text-slate-600">{plan.price_monthly.toLocaleString()} DZD / month</p>
-                                ) : (
-                                    <p className="text-slate-600">Pack details available in payments</p>
-                                )}
-                            </div>
-                            <Link
-                                href="/dashboard/payments"
-                                className="rounded-xl bg-slate-100 px-4 py-2 font-medium text-slate-700 transition-colors hover:bg-slate-200"
-                            >
-                                Open Payments
-                            </Link>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                            <div className="rounded-xl bg-slate-50 p-4">
-                                <p className="mb-1 text-sm text-slate-500">Status</p>
-                                <p className="text-xl font-bold text-slate-900 capitalize">{subscription.status}</p>
-                            </div>
-                            <div className="rounded-xl bg-slate-50 p-4">
-                                <p className="mb-1 text-sm text-slate-500">Starts</p>
-                                <p className="text-xl font-bold text-slate-900">
-                                    {subscription.started_at ? new Date(subscription.started_at).toLocaleDateString() : '-'}
-                                </p>
-                            </div>
-                            <div className="rounded-xl bg-slate-50 p-4">
-                                <p className="mb-1 text-sm text-slate-500">Ends</p>
-                                <p className="text-xl font-bold text-slate-900">
-                                    {subscription.expires_at ? new Date(subscription.expires_at).toLocaleDateString() : '-'}
-                                </p>
-                            </div>
-                            <div className="rounded-xl bg-slate-50 p-4">
-                                <p className="mb-1 text-sm text-slate-500">Max venues</p>
-                                <p className="text-xl font-bold text-slate-900">
-                                    {plan?.max_venues === -1 ? 'Unlimited' : plan?.max_venues || '-'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                <BillingSettingsSection
+                    userId={profile?.id || ''}
+                    plans={plans}
+                    subscription={subscription}
+                    receipts={receipts}
+                    settings={settings}
+                />
             </motion.div>
         </div>
     );

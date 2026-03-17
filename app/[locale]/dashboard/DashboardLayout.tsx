@@ -64,12 +64,11 @@ const navigation = [
     { name: 'Notifications', href: '/dashboard/notifications', icon: NotificationsIcon },
     { name: 'My Venues', href: '/dashboard/venues', icon: VenuesIcon },
     { name: 'Inquiries', href: '/dashboard/inquiries', icon: InquiriesIcon },
-    { name: 'Payments', href: '/dashboard/payments', icon: HomeIcon },
     { name: 'Settings', href: '/dashboard/settings', icon: SettingsIcon },
 ];
 
 function DashboardLanguageSwitcher() {
-    const { language, setLanguage } = useLanguage();
+    const { language, setLanguage, dir } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
     const languageSwitcherTitle = language === 'ar'
         ? 'تغيير اللغة'
@@ -104,7 +103,9 @@ function DashboardLanguageSwitcher() {
                             initial={{ opacity: 0, scale: 0.95, y: 5 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 5 }}
-                            className="absolute top-full right-0 mt-1 w-24 bg-white rounded-lg shadow-lg border border-slate-100 overflow-hidden z-20"
+                            className={`absolute top-full mt-1 w-24 rounded-lg border border-slate-100 bg-white shadow-lg overflow-hidden z-20 ${
+                                dir === 'rtl' ? 'right-0' : 'left-0'
+                            }`}
                         >
                             {(['en', 'fr', 'ar'] as const).map((lang) => (
                                 <button
@@ -114,7 +115,7 @@ function DashboardLanguageSwitcher() {
                                         }`}
                                 >
                                     <span className="uppercase">{lang}</span>
-                                    {language === lang && <span>OK</span>}
+                                    {language === lang && <span>✓</span>}
                                 </button>
                             ))}
                         </motion.div>
@@ -200,7 +201,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                             animate={{ x: 0 }}
                             exit={{ x: dir === 'rtl' ? '100%' : '-100%' }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className={`w-72 bg-white flex flex-col fixed inset-y-0 z-40 md:hidden shadow-xl ${dir === 'rtl' ? 'right-0' : 'left-0'}`}
+                            className={`w-[88vw] max-w-sm bg-white flex flex-col fixed inset-y-0 z-40 md:hidden shadow-xl ${dir === 'rtl' ? 'right-0' : 'left-0'}`}
                         >
                             {/* Logo */}
                             <div className="h-16 flex items-center px-4 border-b border-slate-100 justify-between">
@@ -242,7 +243,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                     {navigation.map((item) => {
                                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                                         const Icon = item.icon;
-                                        const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/payments', '/dashboard/notifications'].includes(item.href);
+                                        const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/notifications'].includes(item.href);
                                         let labelKey = '';
                                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
                                         else if (item.href === '/dashboard/venues') labelKey = 'dashboard.nav.venues';
@@ -302,7 +303,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between gap-2">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                         <div className="flex items-center gap-2">
                                             <DashboardLanguageSwitcher />
                                             <span className={`px-2 py-0.5 text-xs font-medium rounded capitalize ${isApproved
@@ -378,7 +379,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                     {navigation.map((item) => {
                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                         const Icon = item.icon;
-                        const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/payments', '/dashboard/notifications'].includes(item.href);
+                        const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/notifications'].includes(item.href);
 
                         // Map href to translation key
                         let labelKey = '';
@@ -527,10 +528,10 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                         <p>{subscriptionBanner.description}</p>
                                     </div>
                                     <Link
-                                        href="/dashboard/payments"
+                                        href="/dashboard/settings"
                                         className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-slate-700"
                                     >
-                                        Open Payments
+                                        {t('dashboard.nav.settings')}
                                     </Link>
                                 </div>
                             </div>

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { useRouter, usePathname } from '@/i18n/navigation';
-import { routing, Locale, createLocalizedPath, getLocaleFromPath } from '@/i18n/routing';
+import { routing, Locale, createLocalizedPath } from '@/i18n/routing';
 
 type Language = Locale;
 
@@ -40,6 +39,62 @@ export const translations = {
         'settings.businessname': 'Business Name',
         'settings.businessdesc': 'Business Description',
         'settings.businessplaceholder': 'e.g. Wedding Hall Algiers',
+        'settings.setup_title': 'Complete your profile',
+        'settings.setup_desc': 'Fill in your information here. Your plan, receipt, and review status are all managed in settings.',
+        'settings.setup_hint': 'Keep this page updated so the admin team can review and activate your account faster.',
+        'settings.complete': 'Completed',
+        'settings.missing': 'Missing',
+        'settings.personal_section': 'Personal information',
+        'settings.business_section': 'Venue owner profile',
+        'settings.billing.title': 'Plan and payment',
+        'settings.billing.desc': 'Choose your pack, upload your receipt, and track your review status here.',
+        'settings.billing.title_short': 'Plan',
+        'settings.billing.current_title': 'Current request',
+        'settings.billing.current_pack': 'Pack',
+        'settings.billing.current_status': 'Status',
+        'settings.billing.current_starts': 'Starts',
+        'settings.billing.current_ends': 'Ends',
+        'settings.billing.no_subscription': 'No subscription has been requested yet.',
+        'settings.billing.choose_plan': 'Choose a pack',
+        'settings.billing.choose_plan_desc': 'Select the plan that matches your venue needs.',
+        'settings.billing.no_plans': 'No plans are available right now.',
+        'settings.billing.owner_pack': 'Owner Pack',
+        'settings.billing.selected': 'Selected',
+        'settings.billing.per_month': 'per month',
+        'settings.billing.contact_admin': 'Contact admin',
+        'settings.billing.max_venues': 'Max venues',
+        'settings.billing.max_images': 'Images per venue',
+        'settings.billing.max_videos': 'Videos per venue',
+        'settings.billing.manual_payment': 'Manual payment',
+        'settings.billing.manual_payment_desc': 'Use the payment details below, then upload your receipt.',
+        'settings.billing.ccp': 'CCP',
+        'settings.billing.bank': 'Bank',
+        'settings.billing.ask_admin_ccp': 'Ask admin to configure the CCP number.',
+        'settings.billing.ask_admin_bank': 'Ask admin to configure the bank account.',
+        'settings.billing.payment_method': 'Payment method',
+        'settings.billing.ccp_receipt': 'CCP receipt',
+        'settings.billing.bank_receipt': 'Bank transfer receipt',
+        'settings.billing.upload_receipt': 'Upload receipt',
+        'settings.billing.uploading_receipt': 'Uploading...',
+        'settings.billing.choose_receipt': 'Choose receipt image or PDF',
+        'settings.billing.online_payment': 'Online payment',
+        'settings.billing.online_payment_desc': 'Use the direct payment link if it is configured.',
+        'settings.billing.continue_online_payment': 'Continue to online payment',
+        'settings.billing.online_payment_missing': 'No online payment link is configured yet. You can still upload a manual receipt.',
+        'settings.billing.selected_plan': 'Selected pack',
+        'settings.billing.select_plan_first': 'Choose a pack first',
+        'settings.billing.month_short': 'month',
+        'settings.billing.receipt_history': 'Receipt history',
+        'settings.billing.no_receipts': 'No receipts submitted yet.',
+        'settings.billing.receipt_label': 'Payment receipt',
+        'settings.billing.view_receipt': 'View receipt',
+        'settings.billing.admin_note': 'Admin note',
+        'settings.billing.receipt_success': 'Receipt uploaded successfully. Your request is now waiting for admin review.',
+        'settings.billing.receipt_error': 'Could not upload your receipt.',
+        'settings.billing.status_active': 'Active',
+        'settings.billing.status_pending': 'Pending',
+        'settings.billing.status_expired': 'Expired',
+        'settings.billing.status_cancelled': 'Cancelled',
         'dashboard.nav.home': 'Dashboard',
         'dashboard.nav.venues': 'My Venues',
         'dashboard.nav.inquiries': 'Inquiries',
@@ -153,6 +208,62 @@ export const translations = {
         'settings.businessname': 'Nom de l\'entreprise (Business)',
         'settings.businessdesc': 'Description de l\'entreprise',
         'settings.businessplaceholder': 'ex. Salle des Fêtes Alger',
+        'settings.setup_title': 'Complétez votre profil',
+        'settings.setup_desc': 'Renseignez vos informations ici. Votre formule, votre reçu et le statut de revue sont tous gérés dans les paramètres.',
+        'settings.setup_hint': 'Gardez cette page à jour pour aider l\'équipe admin à revoir et activer votre compte plus rapidement.',
+        'settings.complete': 'Complété',
+        'settings.missing': 'Manquant',
+        'settings.personal_section': 'Informations personnelles',
+        'settings.business_section': 'Profil propriétaire',
+        'settings.billing.title': 'Formule et paiement',
+        'settings.billing.desc': 'Choisissez votre pack, téléversez votre reçu et suivez le statut ici.',
+        'settings.billing.title_short': 'Formule',
+        'settings.billing.current_title': 'Demande actuelle',
+        'settings.billing.current_pack': 'Pack',
+        'settings.billing.current_status': 'Statut',
+        'settings.billing.current_starts': 'Début',
+        'settings.billing.current_ends': 'Fin',
+        'settings.billing.no_subscription': 'Aucun abonnement n\'a encore été demandé.',
+        'settings.billing.choose_plan': 'Choisir un pack',
+        'settings.billing.choose_plan_desc': 'Sélectionnez la formule adaptée à votre salle.',
+        'settings.billing.no_plans': 'Aucun pack n\'est disponible pour le moment.',
+        'settings.billing.owner_pack': 'Pack propriétaire',
+        'settings.billing.selected': 'Sélectionné',
+        'settings.billing.per_month': 'par mois',
+        'settings.billing.contact_admin': 'Contacter l\'admin',
+        'settings.billing.max_venues': 'Nombre max de salles',
+        'settings.billing.max_images': 'Images par salle',
+        'settings.billing.max_videos': 'Vidéos par salle',
+        'settings.billing.manual_payment': 'Paiement manuel',
+        'settings.billing.manual_payment_desc': 'Utilisez les informations ci-dessous, puis téléversez votre reçu.',
+        'settings.billing.ccp': 'CCP',
+        'settings.billing.bank': 'Banque',
+        'settings.billing.ask_admin_ccp': 'Demandez à l\'admin de configurer le numéro CCP.',
+        'settings.billing.ask_admin_bank': 'Demandez à l\'admin de configurer le compte bancaire.',
+        'settings.billing.payment_method': 'Mode de paiement',
+        'settings.billing.ccp_receipt': 'Reçu CCP',
+        'settings.billing.bank_receipt': 'Reçu virement bancaire',
+        'settings.billing.upload_receipt': 'Téléverser le reçu',
+        'settings.billing.uploading_receipt': 'Téléversement...',
+        'settings.billing.choose_receipt': 'Choisir une image ou un PDF',
+        'settings.billing.online_payment': 'Paiement en ligne',
+        'settings.billing.online_payment_desc': 'Utilisez le lien direct si la passerelle est configurée.',
+        'settings.billing.continue_online_payment': 'Continuer vers le paiement',
+        'settings.billing.online_payment_missing': 'Aucun lien de paiement en ligne n\'est configuré pour le moment. Vous pouvez toujours téléverser un reçu manuel.',
+        'settings.billing.selected_plan': 'Pack sélectionné',
+        'settings.billing.select_plan_first': 'Choisissez d\'abord un pack',
+        'settings.billing.month_short': 'mois',
+        'settings.billing.receipt_history': 'Historique des reçus',
+        'settings.billing.no_receipts': 'Aucun reçu envoyé pour le moment.',
+        'settings.billing.receipt_label': 'Reçu de paiement',
+        'settings.billing.view_receipt': 'Voir le reçu',
+        'settings.billing.admin_note': 'Note admin',
+        'settings.billing.receipt_success': 'Le reçu a bien été téléversé. Votre demande attend maintenant la revue de l\'admin.',
+        'settings.billing.receipt_error': 'Impossible de téléverser votre reçu.',
+        'settings.billing.status_active': 'Actif',
+        'settings.billing.status_pending': 'En attente',
+        'settings.billing.status_expired': 'Expiré',
+        'settings.billing.status_cancelled': 'Annulé',
         'dashboard.nav.home': 'Tableau de bord',
         'dashboard.nav.venues': 'Mes Lieux',
         'dashboard.nav.inquiries': 'Demandes',
@@ -266,6 +377,62 @@ export const translations = {
         'settings.businessname': 'اسم العمل التجاري',
         'settings.businessdesc': 'وصف العمل',
         'settings.businessplaceholder': 'مثال: قاعة أفراح الجزائر',
+        'settings.setup_title': 'أكمل ملفك',
+        'settings.setup_desc': 'أدخل معلوماتك من هنا. الباقة والإيصال وحالة المراجعة كلها في صفحة الإعدادات.',
+        'settings.setup_hint': 'حدّث هذه الصفحة دائما ليساعد ذلك فريق الإدارة على مراجعة حسابك وتفعيله بسرعة أكبر.',
+        'settings.complete': 'مكتمل',
+        'settings.missing': 'ناقص',
+        'settings.personal_section': 'المعلومات الشخصية',
+        'settings.business_section': 'ملف مالك القاعة',
+        'settings.billing.title': 'الباقة والدفع',
+        'settings.billing.desc': 'اختر باقتك وارفع الإيصال وتابع حالة المراجعة من هنا.',
+        'settings.billing.title_short': 'الباقة',
+        'settings.billing.current_title': 'الطلب الحالي',
+        'settings.billing.current_pack': 'الباقة',
+        'settings.billing.current_status': 'الحالة',
+        'settings.billing.current_starts': 'يبدأ',
+        'settings.billing.current_ends': 'ينتهي',
+        'settings.billing.no_subscription': 'لم يتم طلب أي اشتراك بعد.',
+        'settings.billing.choose_plan': 'اختر باقة',
+        'settings.billing.choose_plan_desc': 'اختر الباقة المناسبة لاحتياجات قاعتك.',
+        'settings.billing.no_plans': 'لا توجد باقات متاحة حاليا.',
+        'settings.billing.owner_pack': 'باقة المالك',
+        'settings.billing.selected': 'محددة',
+        'settings.billing.per_month': 'كل شهر',
+        'settings.billing.contact_admin': 'تواصل مع الإدارة',
+        'settings.billing.max_venues': 'أقصى عدد للقاعات',
+        'settings.billing.max_images': 'الصور لكل قاعة',
+        'settings.billing.max_videos': 'الفيديوهات لكل قاعة',
+        'settings.billing.manual_payment': 'الدفع اليدوي',
+        'settings.billing.manual_payment_desc': 'استخدم معلومات الدفع أدناه ثم ارفع الإيصال.',
+        'settings.billing.ccp': 'CCP',
+        'settings.billing.bank': 'البنك',
+        'settings.billing.ask_admin_ccp': 'اطلب من الإدارة إضافة رقم CCP.',
+        'settings.billing.ask_admin_bank': 'اطلب من الإدارة إضافة معلومات الحساب البنكي.',
+        'settings.billing.payment_method': 'طريقة الدفع',
+        'settings.billing.ccp_receipt': 'إيصال CCP',
+        'settings.billing.bank_receipt': 'إيصال حوالة بنكية',
+        'settings.billing.upload_receipt': 'ارفع الإيصال',
+        'settings.billing.uploading_receipt': 'جاري الرفع...',
+        'settings.billing.choose_receipt': 'اختر صورة أو PDF',
+        'settings.billing.online_payment': 'الدفع الإلكتروني',
+        'settings.billing.online_payment_desc': 'استخدم رابط الدفع المباشر إذا كان متاحا.',
+        'settings.billing.continue_online_payment': 'الانتقال إلى الدفع',
+        'settings.billing.online_payment_missing': 'لا يوجد رابط دفع إلكتروني مفعل حاليا. ما زال يمكنك رفع الإيصال اليدوي.',
+        'settings.billing.selected_plan': 'الباقة المحددة',
+        'settings.billing.select_plan_first': 'اختر باقة أولا',
+        'settings.billing.month_short': 'شهر',
+        'settings.billing.receipt_history': 'سجل الإيصالات',
+        'settings.billing.no_receipts': 'لم يتم رفع أي إيصالات بعد.',
+        'settings.billing.receipt_label': 'إيصال دفع',
+        'settings.billing.view_receipt': 'عرض الإيصال',
+        'settings.billing.admin_note': 'ملاحظة الإدارة',
+        'settings.billing.receipt_success': 'تم رفع الإيصال بنجاح. طلبك الآن بانتظار مراجعة الإدارة.',
+        'settings.billing.receipt_error': 'تعذر رفع الإيصال.',
+        'settings.billing.status_active': 'نشط',
+        'settings.billing.status_pending': 'قيد الانتظار',
+        'settings.billing.status_expired': 'منتهي',
+        'settings.billing.status_cancelled': 'ملغى',
         'dashboard.nav.home': 'لوحة القيادة',
         'dashboard.nav.venues': 'قاعاتي',
         'dashboard.nav.inquiries': 'الاستفسارات',
@@ -359,32 +526,24 @@ export const translations = {
 
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {
-    const router = useRouter();
-    const pathname = usePathname();
-    const [language, setLanguageState] = useState<Language>(routing.defaultLocale);
+    const [language, setLanguageState] = useState<Language>(() => {
+        if (typeof window === 'undefined') return routing.defaultLocale;
 
-    // Initialize language from localStorage and URL on mount
-    useEffect(() => {
-        // Get current pathname with locale from window location
         const fullPath = window.location.pathname;
         const localeMatch = fullPath.match(/^\/(en|fr|ar)(?:\/|$)/);
         const urlLocale = localeMatch?.[1] as Language | null;
-
-        // Check localStorage for saved preference
         const savedLocale = localStorage.getItem('language') as Language | null;
 
-        // Use URL locale first, then saved locale, then default
-        const initialLocale = (urlLocale && routing.locales.includes(urlLocale))
+        return (urlLocale && routing.locales.includes(urlLocale))
             ? urlLocale
             : (savedLocale && routing.locales.includes(savedLocale) ? savedLocale : routing.defaultLocale);
+    });
 
-        setLanguageState(initialLocale);
-        document.documentElement.lang = initialLocale;
-        document.documentElement.dir = initialLocale === 'ar' ? 'rtl' : 'ltr';
-
-        // Save to localStorage
-        localStorage.setItem('language', initialLocale);
-    }, []);
+    useEffect(() => {
+        document.documentElement.lang = language;
+        document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+        localStorage.setItem('language', language);
+    }, [language]);
 
     // Handle language change
     const handleSetLanguage = useCallback((lang: Language) => {
@@ -408,8 +567,8 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
     }, []);
 
     const t = useCallback((key: string) => {
-        // @ts-ignore
-        return translations[language][key] || key;
+        const localeTranslations = translations[language] as Record<string, string>;
+        return localeTranslations[key] || key;
     }, [language]);
 
     return (

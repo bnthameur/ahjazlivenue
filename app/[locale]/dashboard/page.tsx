@@ -113,26 +113,6 @@ export default function DashboardPage() {
     const isRejected = profile?.status === 'rejected';
     const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
     const subscriptionBanner = getSubscriptionBanner(subscription);
-    const onboardingSteps = [
-        {
-            title: '1. Complete your settings',
-            description: 'Fill your personal information and your venue-owner business profile so your account review is complete.',
-            href: '/dashboard/settings',
-            cta: 'Open Settings',
-        },
-        {
-            title: '2. Choose a pack',
-            description: 'Open the packs page, pick the subscription that matches your venue needs, and review the payment options.',
-            href: '/dashboard/payments',
-            cta: 'See Packs',
-        },
-        {
-            title: '3. Submit payment',
-            description: 'Pay online or upload your CCP or bank receipt, then wait for admin approval to activate your owner account.',
-            href: '/dashboard/payments',
-            cta: 'Submit Payment',
-        },
-    ];
 
     if (loading) {
         return (
@@ -161,67 +141,31 @@ export default function DashboardPage() {
 
                 {/* Pending Approval Notice */}
                 {isPending && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="mb-6 p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl"
-                        >
-                            <div className="flex items-start gap-4">
-                                <div className="flex-shrink-0">
-                                    <Emoji name="hourglass-not-done" width={48} />
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-amber-800 mb-1">{t('status.pending')}</h3>
-                                    <p className="text-amber-700">
-                                        {t('status.pending_desc')}
-                                    </p>
-                                    <div className="mt-4 flex flex-wrap gap-3">
-                                        <Link
-                                            href="/dashboard/settings"
-                                            className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
-                                        >
-                                            Complete Settings
-                                        </Link>
-                                        <Link
-                                            href="/dashboard/payments"
-                                            className="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-50"
-                                        >
-                                            Choose Pack & Pay
-                                        </Link>
-                                    </div>
-                                </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl"
+                    >
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0">
+                                <Emoji name="hourglass-not-done" width={48} />
                             </div>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.05 }}
-                            className="mb-8 rounded-2xl border border-slate-200 bg-white p-6"
-                        >
-                            <div className="mb-5">
-                                <h2 className="text-lg font-bold text-slate-900">Simple onboarding guide</h2>
-                                <p className="mt-1 text-sm text-slate-600">
-                                    Follow these three steps to finish your venue-owner onboarding and unlock your account.
+                            <div>
+                                <h3 className="text-lg font-bold text-amber-800 mb-1">{t('status.pending')}</h3>
+                                <p className="text-amber-700">
+                                    {t('status.pending_desc')}
                                 </p>
+                                <div className="mt-4">
+                                    <Link
+                                        href="/dashboard/settings"
+                                        className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
+                                    >
+                                        {t('actions.settings_title')}
+                                    </Link>
+                                </div>
                             </div>
-                            <div className="grid gap-4 md:grid-cols-3">
-                                {onboardingSteps.map((step) => (
-                                    <div key={step.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                        <h3 className="text-base font-semibold text-slate-900">{step.title}</h3>
-                                        <p className="mt-2 text-sm text-slate-600">{step.description}</p>
-                                        <Link
-                                            href={step.href}
-                                            className="mt-4 inline-flex items-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
-                                        >
-                                            {step.cta}
-                                        </Link>
-                                    </div>
-                                ))}
-                            </div>
-                        </motion.div>
-                    </>
+                        </div>
+                    </motion.div>
                 )}
 
                 {/* Rejected Notice */}
@@ -276,10 +220,10 @@ export default function DashboardPage() {
                                 </p>
                                 <div className="mt-4 flex flex-wrap gap-3">
                                     <Link
-                                        href="/dashboard/payments"
+                                        href="/dashboard/settings"
                                         className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-700"
                                     >
-                                        Open Payments
+                                        {t('actions.settings_title')}
                                     </Link>
                                     <Link
                                         href="/dashboard/settings"
@@ -402,18 +346,6 @@ export default function DashboardPage() {
                         </motion.div>
                     </Link>
 
-                    <Link href="/dashboard/payments">
-                        <motion.div
-                            whileHover={{ scale: 1.02 }}
-                            className="bg-white border border-slate-200 rounded-2xl p-6 cursor-pointer hover:border-slate-300 transition-colors"
-                        >
-                            <div className="flex items-center gap-4 mb-4">
-                                <Emoji name="credit-card" width={48} />
-                            </div>
-                            <h3 className="text-lg font-bold text-slate-900 mb-1">Payments & Packs</h3>
-                            <p className="text-slate-600 text-sm">Choose a pack, upload your receipt, or continue to online payment.</p>
-                        </motion.div>
-                    </Link>
                 </div>
             </motion.div>
         </div>

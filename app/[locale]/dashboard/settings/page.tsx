@@ -41,10 +41,26 @@ export default async function SettingsPage() {
 
     const subscription = normalizeSubscriptionSummary(subscriptionData);
 
+    const [{ data: plans }, { data: receipts }, { data: settingsRows }] = await Promise.all([
+        supabase
+            .from('subscription_plans')
+            .select('id, name, name_ar, price_monthly, price_yearly, max_venues, max_images_per_venue, max_videos_per_venue')
+            .order('price_monthly', { ascending: true }),
+        supabase
+            .from('payment_receipts')
+            .select('id, receipt_url, payment_method, amount, status, admin_note, created_at, reviewed_at')
+            .eq('user_id', user?.id)
+            .order('created_at', { ascending: false }),
+        supabase.from('platform_settings').select('key, value'),
+    ]);
+
     return (
         <SettingsClient
             profile={profile}
             subscription={subscription}
+            plans={plans || []}
+            receipts={receipts || []}
+            settings={settingsRows || []}
             usage={null}
         />
     );
