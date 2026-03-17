@@ -3,7 +3,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
-import { uploadVenueImages, uploadVenueVideo, VenueMediaRecord, VideoUploadProgress } from '@/lib/supabase/storage';
+import { uploadVenueImages, uploadVenueVideo, VideoUploadProgress } from '@/lib/supabase/storage';
+import { validateVideo } from '@/lib/media-optimizer';
 import { formatBytes } from '@/lib/media-optimizer';
 import { useTranslations, useLocale } from 'next-intl';
 import { WILAYAS, getWilayaLabel, getWilayas } from '@/lib/wilayas';
@@ -362,12 +363,17 @@ export default function NewVenuePage() {
     const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
     const [optimizationStats, setOptimizationStats] = useState<{ saved: string; percent: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [videos, setVideos] = useState<VenueMediaRecord[]>([]);
+    const [videos, setVideos] = useState<Array<{
+        id: string;
+        file: File;
+        previewUrl: string | null;
+        thumbnailUrl: string | null;
+        status: 'queued' | 'uploading' | 'uploaded' | 'error';
+        error?: string | null;
+    }>>([]);
     const [videoUploading, setVideoUploading] = useState(false);
     const [videoUploadProgress, setVideoUploadProgress] = useState<VideoUploadProgress | null>(null);
     const [videoError, setVideoError] = useState<string | null>(null);
-    // Temp venue id for new venue video uploads - created on first video upload
-    const tempVenueIdRef = useRef<string>(`temp_venue_${Date.now()}`);
     
     const categories = useMemo(() => getCategories(t), [t]);
     const wilayas = useMemo(() => getWilayas(t), [t]);
@@ -503,10 +509,53 @@ export default function NewVenuePage() {
         setVideoUploadProgress(null);
 
         try {
-            const result = await uploadVenueVideo(file, tempVenueIdRef.current, (progress) => {
-                setVideoUploadProgress(progress);
-            });
-            setVideos(prev => [...prev, result.mediaRecord]);
+            const validation = await validateVideo(file);
+            if (!validation.valid) {
+                throw new Error(validation.message);
+            }
+
+            const previewUrl = URL.createObjectURL(file);
+            let thumbnailUrl: string | null = null;
+
+            try {
+                const videoEl = document.createElement('video');
+                videoEl.preload = 'metadata';
+                videoEl.muted = true;
+                videoEl.playsInline = true;
+                videoEl.src = previewUrl;
+
+                thumbnailUrl = await new Promise<string | null>((resolve) => {
+                    videoEl.onloadedmetadata = () => {
+                        videoEl.currentTime = videoEl.duration >= 2 ? 1 : Math.max(videoEl.duration / 2, 0);
+                    };
+                    videoEl.onseeked = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = videoEl.videoWidth || 640;
+                        canvas.height = videoEl.videoHeight || 360;
+                        const ctx = canvas.getContext('2d');
+                        if (!ctx) {
+                            resolve(null);
+                            return;
+                        }
+                        ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                    };
+                    videoEl.onerror = () => resolve(null);
+                });
+            } catch {
+                thumbnailUrl = null;
+            }
+
+            setVideos(prev => [
+                ...prev,
+                {
+                    id: `${file.name}-${file.lastModified}-${Date.now()}`,
+                    file,
+                    previewUrl,
+                    thumbnailUrl,
+                    status: 'queued',
+                },
+            ]);
         } catch (err: any) {
             setVideoError('Error uploading video: ' + err.message);
         } finally {
@@ -517,7 +566,13 @@ export default function NewVenuePage() {
     };
 
     const removeVideo = (videoId: string) => {
-        setVideos(prev => prev.filter(v => v.id !== videoId));
+        setVideos(prev => {
+            const target = prev.find(v => v.id === videoId);
+            if (target?.previewUrl) {
+                URL.revokeObjectURL(target.previewUrl);
+            }
+            return prev.filter(v => v.id !== videoId);
+        });
     };
 
     // Fixed submission using API route
@@ -562,6 +617,38 @@ export default function NewVenuePage() {
                 throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
 
+            const responseData = await response.json();
+            const createdVenueId = responseData?.data?.id as string | undefined;
+
+            if (!createdVenueId) {
+                throw new Error('Venue created, but no venue ID was returned.');
+            }
+
+            if (videos.length > 0) {
+                setVideoUploading(true);
+                setVideoUploadProgress({ stage: 'compressing-video', progress: 0 });
+            }
+
+            for (const queuedVideo of videos) {
+                setVideos(prev => prev.map((video) => (
+                    video.id === queuedVideo.id ? { ...video, status: 'uploading', error: null } : video
+                )));
+
+                try {
+                    await uploadVenueVideo(queuedVideo.file, createdVenueId, (progress) => {
+                        setVideoUploadProgress(progress);
+                    });
+                    setVideos(prev => prev.map((video) => (
+                        video.id === queuedVideo.id ? { ...video, status: 'uploaded', error: null } : video
+                    )));
+                } catch (uploadError: any) {
+                    setVideos(prev => prev.map((video) => (
+                        video.id === queuedVideo.id ? { ...video, status: 'error', error: uploadError.message || 'Upload failed' } : video
+                    )));
+                    throw new Error(`Venue created, but video upload failed: ${uploadError.message || 'Unknown error'}`);
+                }
+            }
+
             // Success - redirect to venues list
             router.push(`/${locale}/dashboard/venues`);
             router.refresh();
@@ -569,6 +656,8 @@ export default function NewVenuePage() {
             console.error('Submit error:', err);
             setError(err.message || t('NewVenue.errors.submit_failed'));
         } finally {
+            setVideoUploading(false);
+            setVideoUploadProgress(null);
             setIsSubmitting(false);
         }
     };
@@ -895,6 +984,7 @@ export default function NewVenuePage() {
                                 <Loader2 className="w-4 h-4 text-violet-600 animate-spin shrink-0" />
                                 <p className="text-xs text-violet-700 font-medium">
                                     {videoUploadProgress?.stage === 'generating-thumbnail' && 'Generating thumbnail...'}
+                                    {videoUploadProgress?.stage === 'compressing-video' && 'Compressing video...'}
                                     {videoUploadProgress?.stage === 'uploading-video' && 'Uploading video...'}
                                     {videoUploadProgress?.stage === 'uploading-thumbnail' && 'Uploading thumbnail...'}
                                     {videoUploadProgress?.stage === 'saving-record' && 'Saving...'}
@@ -928,9 +1018,9 @@ export default function NewVenuePage() {
                                     key={video.id}
                                     className="group relative aspect-video rounded-xl overflow-hidden bg-slate-900 ring-1 ring-slate-200"
                                 >
-                                    {video.thumbnail_url ? (
+                                    {video.thumbnailUrl ? (
                                         <img
-                                            src={video.thumbnail_url}
+                                            src={video.thumbnailUrl}
                                             alt="Video thumbnail"
                                             className="w-full h-full object-cover opacity-80"
                                         />
@@ -945,6 +1035,17 @@ export default function NewVenuePage() {
                                             <Play className="w-4 h-4 text-slate-800 ml-0.5" fill="currentColor" />
                                         </div>
                                     </div>
+                                    {video.status !== 'queued' && (
+                                        <div className={`absolute bottom-1.5 left-1.5 px-2 py-1 rounded-lg text-[10px] font-medium ${
+                                            video.status === 'uploaded'
+                                                ? 'bg-emerald-600 text-white'
+                                                : video.status === 'uploading'
+                                                    ? 'bg-violet-600 text-white'
+                                                    : 'bg-red-600 text-white'
+                                        }`}>
+                                            {video.status === 'uploaded' ? 'Saved' : video.status === 'uploading' ? 'Uploading' : 'Needs retry'}
+                                        </div>
+                                    )}
                                     {/* Remove button */}
                                     <button
                                         type="button"

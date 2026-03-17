@@ -624,6 +624,7 @@ export default function EditVenuePage() {
                             <Loader2 className="w-4 h-4 text-violet-600 animate-spin shrink-0" />
                             <p className="text-sm text-violet-700 font-medium">
                                 {videoUploadProgress?.stage === 'generating-thumbnail' && 'Generating thumbnail...'}
+                                {videoUploadProgress?.stage === 'compressing-video' && 'Compressing video...'}
                                 {videoUploadProgress?.stage === 'uploading-video' && 'Uploading video...'}
                                 {videoUploadProgress?.stage === 'uploading-thumbnail' && 'Uploading thumbnail...'}
                                 {videoUploadProgress?.stage === 'saving-record' && 'Saving...'}

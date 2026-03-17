@@ -4,7 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import { squooshFiles, OptimizedFile, formatBytes } from '@/lib/media-optimizer';
+import { squooshFiles, formatBytes } from '@/lib/media-optimizer';
 
 const STORAGE_BUCKET = 'shopify-clone-assets';
 const VENUE_IMAGES_BUCKET = 'venue-images';
@@ -241,7 +241,7 @@ export interface VideoUploadResult {
 }
 
 export interface VideoUploadProgress {
-    stage: 'generating-thumbnail' | 'uploading-video' | 'uploading-thumbnail' | 'saving-record';
+    stage: 'compressing-video' | 'generating-thumbnail' | 'uploading-video' | 'uploading-thumbnail' | 'saving-record';
     progress: number; // 0-100
 }
 
@@ -303,6 +303,132 @@ export async function generateVideoThumbnail(videoFile: File): Promise<Blob> {
 const VENUE_VIDEOS_BUCKET = 'venue-images'; // reuse same bucket, different prefix
 
 const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
+const VIDEO_COMPRESSION_TARGET_BYTES = 20 * 1024 * 1024; // try to shrink larger files before upload
+const VIDEO_COMPRESSION_BITRATE = 2_500_000;
+
+function getSupportedRecorderMimeType(): string | null {
+    if (typeof MediaRecorder === 'undefined') return null;
+
+    const candidates = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+    ];
+
+    return candidates.find((type) => MediaRecorder.isTypeSupported(type)) ?? null;
+}
+
+async function compressVideoForUpload(
+    videoFile: File,
+    onProgress?: (progress: number) => void
+): Promise<File> {
+    const recorderMimeType = getSupportedRecorderMimeType();
+    const canCapture =
+        typeof document !== 'undefined' &&
+        typeof HTMLVideoElement !== 'undefined' &&
+        recorderMimeType &&
+        typeof MediaRecorder !== 'undefined';
+
+    if (!canCapture || videoFile.size <= VIDEO_COMPRESSION_TARGET_BYTES) {
+        onProgress?.(100);
+        return videoFile;
+    }
+
+    return new Promise((resolve) => {
+        const video = document.createElement('video');
+        const objectUrl = URL.createObjectURL(videoFile);
+        const cleanup = () => {
+            URL.revokeObjectURL(objectUrl);
+            video.pause();
+            video.removeAttribute('src');
+            video.load();
+        };
+
+        let settled = false;
+        const finish = (file: File) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(file);
+        };
+
+        video.preload = 'auto';
+        video.muted = true;
+        video.playsInline = true;
+
+        video.onloadedmetadata = async () => {
+            try {
+                const stream =
+                    typeof video.captureStream === 'function'
+                        ? video.captureStream()
+                        : typeof (video as HTMLVideoElement & { mozCaptureStream?: () => MediaStream }).mozCaptureStream === 'function'
+                            ? (video as HTMLVideoElement & { mozCaptureStream: () => MediaStream }).mozCaptureStream()
+                            : null;
+
+                if (!stream) {
+                    finish(videoFile);
+                    return;
+                }
+
+                const chunks: Blob[] = [];
+                const recorder = new MediaRecorder(stream, {
+                    mimeType: recorderMimeType,
+                    videoBitsPerSecond: VIDEO_COMPRESSION_BITRATE,
+                });
+
+                recorder.ondataavailable = (event) => {
+                    if (event.data?.size) {
+                        chunks.push(event.data);
+                    }
+                };
+
+                recorder.onerror = () => finish(videoFile);
+
+                recorder.onstop = () => {
+                    if (!chunks.length) {
+                        finish(videoFile);
+                        return;
+                    }
+
+                    const blob = new Blob(chunks, { type: recorderMimeType });
+                    if (!blob.size || blob.size >= videoFile.size) {
+                        finish(videoFile);
+                        return;
+                    }
+
+                    const ext = recorderMimeType.includes('webm') ? 'webm' : 'mp4';
+                    const compressedFile = new File(
+                        [blob],
+                        videoFile.name.replace(/\.[^/.]+$/, `.${ext}`),
+                        { type: blob.type || `video/${ext}` }
+                    );
+                    finish(compressedFile);
+                };
+
+                video.ontimeupdate = () => {
+                    if (video.duration > 0) {
+                        onProgress?.(Math.min(99, Math.round((video.currentTime / video.duration) * 100)));
+                    }
+                };
+
+                video.onended = () => {
+                    onProgress?.(100);
+                    if (recorder.state !== 'inactive') {
+                        recorder.stop();
+                    }
+                };
+
+                recorder.start(1000);
+                await video.play();
+            } catch {
+                finish(videoFile);
+            }
+        };
+
+        video.onerror = () => finish(videoFile);
+        video.src = objectUrl;
+    });
+}
 
 /**
  * Upload a venue video with auto-generated thumbnail.
@@ -329,8 +455,14 @@ export async function uploadVenueVideo(
         throw new Error(`Video file too large: ${sizeMB}MB. Maximum allowed size is 50MB.`);
     }
 
+    onProgress?.({ stage: 'compressing-video', progress: 0 });
+    const processedVideoFile = await compressVideoForUpload(videoFile, (progress) => {
+        onProgress?.({ stage: 'compressing-video', progress });
+    });
+    onProgress?.({ stage: 'compressing-video', progress: 100 });
+
     const timestamp = Date.now();
-    const sanitizedName = videoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const sanitizedName = processedVideoFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
     const videoPath = `${venueId}/videos/${timestamp}_${sanitizedName}`;
     const thumbnailPath = `${venueId}/videos/thumbs/${timestamp}_thumb.jpg`;
 
@@ -338,7 +470,7 @@ export async function uploadVenueVideo(
     onProgress?.({ stage: 'generating-thumbnail', progress: 0 });
     let thumbnailBlob: Blob | null = null;
     try {
-        thumbnailBlob = await generateVideoThumbnail(videoFile);
+        thumbnailBlob = await generateVideoThumbnail(processedVideoFile);
     } catch (err) {
         console.warn('Thumbnail generation failed, continuing without thumbnail:', err);
     }
@@ -348,8 +480,8 @@ export async function uploadVenueVideo(
     onProgress?.({ stage: 'uploading-video', progress: 0 });
     const { error: videoError } = await supabase.storage
         .from(VENUE_VIDEOS_BUCKET)
-        .upload(videoPath, videoFile, {
-            contentType: videoFile.type,
+        .upload(videoPath, processedVideoFile, {
+            contentType: processedVideoFile.type,
             cacheControl: '31536000',
         });
 
@@ -449,7 +581,6 @@ export async function deleteVenueVideo(mediaId: string, filePath: string): Promi
     // Delete from storage (best-effort, don't throw if file missing)
     const storageFilename = filePath.split('/').pop();
     if (storageFilename) {
-        const venueId = filePath.split('/')[0];
         await supabase.storage
             .from(VENUE_VIDEOS_BUCKET)
             .remove([filePath])
