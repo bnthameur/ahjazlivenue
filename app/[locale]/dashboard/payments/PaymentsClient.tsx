@@ -72,25 +72,17 @@ export default function PaymentsClient({
     );
 
     const upsertPendingSubscription = async (planId: string) => {
-        const basePayload = {
+        const payload = {
             user_id: userId,
-            status: 'pending_payment',
+            plan_id: planId,
+            status: 'pending',
             created_at: new Date().toISOString(),
         };
 
-        const attempts = [
-            { ...basePayload, plan_id: planId },
-            { ...basePayload, subscription_plan_id: planId },
-        ];
-
-        let lastError: Error | null = null;
-        for (const payload of attempts) {
-            const { error: insertError } = await supabase.from('user_subscriptions').insert(payload as never);
-            if (!insertError) return;
-            lastError = new Error(insertError.message);
+        const { error: insertError } = await supabase.from('user_subscriptions').insert(payload as never);
+        if (insertError) {
+            throw new Error(insertError.message);
         }
-
-        if (lastError) throw lastError;
     };
 
     const handleReceiptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
