@@ -1,14 +1,16 @@
 'use client';
 
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, usePathname } from '@/i18n/navigation';
 import { Link } from '@/i18n/navigation';
 import { User } from '@supabase/supabase-js';
 import { useLanguage } from '@/components/LanguageProvider';
 import { useLocale } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Emoji } from 'react-apple-emojis';
+import { getSubscriptionBanner, hasActiveOwnerSubscription, type UserSubscriptionSummary } from '@/lib/owner-billing';
 
 interface Profile {
     full_name: string | null;
@@ -21,7 +23,7 @@ interface Profile {
 interface DashboardLayoutProps {
     user: User;
     profile: Profile | null;
-    subscription?: any; // Made optional as table is missing
+    subscription?: UserSubscriptionSummary | null;
     children: React.ReactNode;
 }
 
@@ -62,6 +64,7 @@ const navigation = [
     { name: 'Notifications', href: '/dashboard/notifications', icon: NotificationsIcon },
     { name: 'My Venues', href: '/dashboard/venues', icon: VenuesIcon },
     { name: 'Inquiries', href: '/dashboard/inquiries', icon: InquiriesIcon },
+    { name: 'Payments', href: '/dashboard/payments', icon: HomeIcon },
     { name: 'Settings', href: '/dashboard/settings', icon: SettingsIcon },
 ];
 
@@ -111,7 +114,7 @@ function DashboardLanguageSwitcher() {
                                         }`}
                                 >
                                     <span className="uppercase">{lang}</span>
-                                    {language === lang && <span>✓</span>}
+                                    {language === lang && <span>OK</span>}
                                 </button>
                             ))}
                         </motion.div>
@@ -122,7 +125,7 @@ function DashboardLanguageSwitcher() {
     );
 }
 
-export default function DashboardLayout({ user, profile, children }: DashboardLayoutProps) {
+export default function DashboardLayout({ user, profile, subscription, children }: DashboardLayoutProps) {
     const locale = useLocale();
     const router = useRouter();
     const pathname = usePathname();
@@ -132,7 +135,7 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
     const [unreadCount, setUnreadCount] = useState(0);
 
     // Fetch unread notifications count
-    useState(() => {
+    useEffect(() => {
         const fetchUnreadCount = async () => {
             const { count } = await supabase
                 .from('notifications')
@@ -159,7 +162,7 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
         return () => {
             supabase.removeChannel(channel);
         };
-    });
+    }, [supabase, user.id]);
 
     // Passing dir to the root div is handled by LanguageProvider, but we might need to enforce it on body or root.
     // Since LanguageProvider wraps the whole app in layout.tsx, the dir should be correct globally.
@@ -176,6 +179,8 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
     const isApproved = profile?.status === 'active';
     const isPending = profile?.status === 'pending';
     const isRejected = profile?.status === 'rejected';
+    const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
+    const subscriptionBanner = getSubscriptionBanner(subscription);
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row" dir={dir}>
@@ -237,7 +242,7 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
                                     {navigation.map((item) => {
                                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                                         const Icon = item.icon;
-                                        const isDisabled = !isApproved && item.href !== '/dashboard' && item.href !== '/dashboard/settings';
+                                        const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/payments', '/dashboard/notifications'].includes(item.href);
                                         let labelKey = '';
                                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
                                         else if (item.href === '/dashboard/venues') labelKey = 'dashboard.nav.venues';
@@ -278,10 +283,13 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
                                     {/* User Profile */}
                                     <div className="flex items-center gap-3">
                                         {profile?.avatar_url || user.user_metadata?.avatar_url ? (
-                                            <img
+                                            <Image
                                                 src={profile?.avatar_url || user.user_metadata?.avatar_url}
                                                 alt={displayName}
-                                                className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                                                width={40}
+                                                height={40}
+                                                className="h-10 w-10 rounded-full border border-slate-200 object-cover"
+                                                unoptimized
                                             />
                                         ) : (
                                             <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-sm font-medium">
@@ -354,13 +362,23 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
                         <p className="text-red-600 text-xs mt-1">{t('dashboard.status.rejected_desc')}</p>
                     </div>
                 )}
+                {isApproved && subscriptionBanner && (
+                    <div className={`mx-2 mt-2 rounded-lg border p-2 text-xs ${
+                        subscriptionBanner.tone === 'error'
+                            ? 'border-red-200 bg-red-50 text-red-700'
+                            : 'border-blue-200 bg-blue-50 text-blue-700'
+                    }`}>
+                        <p className="font-medium">{subscriptionBanner.title}</p>
+                        <p className="mt-1">{subscriptionBanner.description}</p>
+                    </div>
+                )}
 
                 {/* Navigation */}
                 <nav className="flex-1 px-2 py-3 space-y-0.5">
                     {navigation.map((item) => {
                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                         const Icon = item.icon;
-                        const isDisabled = !isApproved && item.href !== '/dashboard' && item.href !== '/dashboard/settings';
+                        const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/payments', '/dashboard/notifications'].includes(item.href);
 
                         // Map href to translation key
                         let labelKey = '';
@@ -410,7 +428,7 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
                 </nav>
 
                 {/* Add Venue Button */}
-                {isApproved && (
+                {isApproved && hasActiveSubscription && (
                     <div className="p-3 border-t border-slate-100">
                         <Link
                             href="/dashboard/venues/new"
@@ -467,10 +485,13 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
                         </span>
                         <div className="flex items-center gap-2">
                             {profile?.avatar_url || user.user_metadata?.avatar_url ? (
-                                <img
+                                <Image
                                     src={profile?.avatar_url || user.user_metadata?.avatar_url}
                                     alt={displayName}
-                                    className="w-6 h-6 rounded-full object-cover border border-slate-200"
+                                    width={24}
+                                    height={24}
+                                    className="h-6 w-6 rounded-full border border-slate-200 object-cover"
+                                    unoptimized
                                 />
                             ) : (
                                 <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-xs font-medium">
@@ -493,6 +514,28 @@ export default function DashboardLayout({ user, profile, children }: DashboardLa
 
                 {/* Page Content */}
                 <main className="flex-1 overflow-auto">
+                    {isApproved && subscriptionBanner && (
+                        <div className="border-b border-slate-200 bg-white/80 px-4 py-3">
+                            <div className={`mx-auto max-w-6xl rounded-xl border px-4 py-3 text-sm ${
+                                subscriptionBanner.tone === 'error'
+                                    ? 'border-red-200 bg-red-50 text-red-700'
+                                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                            }`}>
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                    <div>
+                                        <p className="font-semibold">{subscriptionBanner.title}</p>
+                                        <p>{subscriptionBanner.description}</p>
+                                    </div>
+                                    <Link
+                                        href="/dashboard/payments"
+                                        className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-slate-700"
+                                    >
+                                        Open Payments
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {children}
                 </main>
             </div>

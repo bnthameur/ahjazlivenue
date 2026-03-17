@@ -118,7 +118,7 @@ export async function updateVenueStatus(formData: FormData) {
         }
 
         // Update Venue
-        const updateData: any = { status };
+        const updateData: { status: typeof status; rejection_reason?: string } = { status };
         if (action === 'reject' && rejectionReason) {
             updateData.rejection_reason = rejectionReason;
         }
@@ -168,9 +168,9 @@ export async function updatePlatformSetting(formData: FormData) {
 
         revalidatePath('/admin/settings');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating platform setting:', error);
-        return { error: error.message || 'Failed to update setting' };
+        return { error: error instanceof Error ? error.message : 'Failed to update setting' };
     }
 }
 
@@ -209,6 +209,31 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
                 .update({ status: 'active' })
                 .eq('id', receipt.user_id)
                 .eq('status', 'pending');
+
+            const { data: pendingSubscription } = await supabase
+                .from('user_subscriptions')
+                .select('id, expires_at, created_at')
+                .eq('user_id', receipt.user_id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            const now = new Date();
+            const currentExpiry = pendingSubscription?.expires_at ? new Date(pendingSubscription.expires_at) : null;
+            const startDate = currentExpiry && currentExpiry > now ? currentExpiry : now;
+            const expiryDate = new Date(startDate);
+            expiryDate.setDate(expiryDate.getDate() + 30);
+
+            if (pendingSubscription?.id) {
+                await supabase
+                    .from('user_subscriptions')
+                    .update({
+                        status: 'active',
+                        started_at: now.toISOString(),
+                        expires_at: expiryDate.toISOString(),
+                    })
+                    .eq('id', pendingSubscription.id);
+            }
         }
 
         // Send notification to the user
@@ -217,7 +242,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
                 ? 'Payment Approved'
                 : 'Payment Rejected';
             const notificationMessage = action === 'approve'
-                ? `Your payment of ${receipt.amount} DZD has been approved. Your account is now active.`
+                ? `Your payment of ${receipt.amount} DZD has been approved. Your account and subscription are now active.`
                 : `Your payment receipt has been rejected.${adminNote ? ' Reason: ' + adminNote : ''}`;
 
             await supabase.from('notifications').insert({
@@ -231,7 +256,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
 
         revalidatePath('/admin/users');
         revalidatePath('/admin/payments');
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating receipt status:', error);
     }
 }
@@ -257,8 +282,8 @@ export async function toggleVenueFeatured(formData: FormData) {
         revalidatePath('/admin/settings');
         revalidatePath('/admin/venues');
         return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error toggling venue featured status:', error);
-        return { error: error.message || 'Failed to update venue' };
+        return { error: error instanceof Error ? error.message : 'Failed to update venue' };
     }
 }

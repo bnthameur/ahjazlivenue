@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import SettingsClient from './SettingsClient';
+import { normalizeSubscriptionSummary } from '@/lib/owner-billing';
 
 export default async function SettingsPage() {
     const cookieStore = await cookies();
@@ -14,23 +15,37 @@ export default async function SettingsPage() {
         .eq('id', user?.id)
         .single();
 
-    const { data: subscription } = await supabase
-        .from('subscriptions')
-        .select('*, plans(*)')
+    const { data: subscriptionData } = await supabase
+        .from('user_subscriptions')
+        .select(`
+            id,
+            status,
+            started_at,
+            expires_at,
+            created_at,
+            subscription_plans (
+                id,
+                name,
+                name_ar,
+                price_monthly,
+                price_yearly,
+                max_venues,
+                max_images_per_venue,
+                max_videos_per_venue
+            )
+        `)
         .eq('user_id', user?.id)
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    const { data: usage } = await supabase
-        .from('usage')
-        .select('*')
-        .eq('user_id', user?.id)
-        .single();
+    const subscription = normalizeSubscriptionSummary(subscriptionData);
 
     return (
         <SettingsClient
             profile={profile}
             subscription={subscription}
-            usage={usage}
+            usage={null}
         />
     );
 }

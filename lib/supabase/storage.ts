@@ -322,6 +322,11 @@ async function compressVideoForUpload(
     videoFile: File,
     onProgress?: (progress: number) => void
 ): Promise<File> {
+    type CapturableVideoElement = HTMLVideoElement & {
+        captureStream?: () => MediaStream;
+        mozCaptureStream?: () => MediaStream;
+    };
+
     const recorderMimeType = getSupportedRecorderMimeType();
     const canCapture =
         typeof document !== 'undefined' &&
@@ -335,7 +340,7 @@ async function compressVideoForUpload(
     }
 
     return new Promise((resolve) => {
-        const video = document.createElement('video');
+        const video = document.createElement('video') as CapturableVideoElement;
         const objectUrl = URL.createObjectURL(videoFile);
         const cleanup = () => {
             URL.revokeObjectURL(objectUrl);
@@ -361,8 +366,8 @@ async function compressVideoForUpload(
                 const stream =
                     typeof video.captureStream === 'function'
                         ? video.captureStream()
-                        : typeof (video as HTMLVideoElement & { mozCaptureStream?: () => MediaStream }).mozCaptureStream === 'function'
-                            ? (video as HTMLVideoElement & { mozCaptureStream: () => MediaStream }).mozCaptureStream()
+                        : typeof video.mozCaptureStream === 'function'
+                            ? video.mozCaptureStream()
                             : null;
 
                 if (!stream) {
