@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/LanguageProvider';
 import { Emoji } from 'react-apple-emojis';
+import { Link } from '@/i18n/navigation';
 import type { UserSubscriptionSummary } from '@/lib/owner-billing';
 import BillingSettingsSection from './BillingSettingsSection';
 
@@ -18,6 +19,7 @@ interface Profile {
     business_name: string | null;
     business_description: string | null;
     country?: string;
+    status?: 'pending' | 'active' | 'rejected';
 }
 
 interface SettingsClientProps {
@@ -47,10 +49,12 @@ interface SettingsClientProps {
         key: string;
         value: string | null;
     }>;
-    usage: null;
+    usage: {
+        venuesCount: number;
+    } | null;
 }
 
-export default function SettingsClient({ profile, subscription, plans, receipts, settings }: SettingsClientProps) {
+export default function SettingsClient({ profile, subscription, plans, receipts, settings, usage }: SettingsClientProps) {
     const supabase = createClient();
     const { t } = useLanguage();
     const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +92,11 @@ export default function SettingsClient({ profile, subscription, plans, receipts,
     ];
 
     const completedItems = profileCompletionItems.filter((item) => item.done).length;
+    const currentPlan = subscription?.subscription_plans || null;
+    const maxVenues = currentPlan?.max_venues ?? null;
+    const venuesCount = usage?.venuesCount || 0;
+    const venuesRemaining = maxVenues == null ? null : Math.max(maxVenues - venuesCount, 0);
+    const isPendingAccount = profile?.status === 'pending';
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -177,6 +186,77 @@ export default function SettingsClient({ profile, subscription, plans, receipts,
                     <p className="mt-1 text-slate-600">{t('settings.desc')}</p>
                 </div>
 
+                {isPendingAccount && (() => {
+                    const step1Done = completedItems === profileCompletionItems.length;
+                    const step2Done = Boolean(currentPlan);
+                    const step3Done = receipts.length > 0;
+                    const stepsCompleted = [step1Done, step2Done, step3Done].filter(Boolean).length;
+
+                    return (
+                        <div className="mb-6 rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-6">
+                            {/* Progress indicator */}
+                            <div className="mb-4 flex items-center gap-2">
+                                <div className="flex-1 h-2 rounded-full bg-amber-100 overflow-hidden">
+                                    <div
+                                        className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-500"
+                                        style={{ width: `${(stepsCompleted / 3) * 100}%` }}
+                                    />
+                                </div>
+                                <span className="text-xs font-bold text-amber-700">{stepsCompleted}/3</span>
+                            </div>
+
+                            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                                <div className="max-w-2xl">
+                                    <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm font-semibold text-amber-700 shadow-sm">
+                                        <span>&#9203;</span>
+                                        {t('settings.pending.badge')}
+                                    </div>
+                                    <h2 className="text-xl font-bold text-slate-900">{t('settings.pending.title')}</h2>
+                                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                                        {t('settings.pending.desc')}
+                                    </p>
+                                </div>
+                                <Link
+                                    href="/dashboard/venues"
+                                    className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 shrink-0"
+                                >
+                                    {t('settings.pending.venue_workspace')}
+                                </Link>
+                            </div>
+                            <div className="mt-5 grid gap-3 md:grid-cols-3">
+                                <div className={`rounded-2xl border p-4 transition-colors ${step1Done ? 'border-green-200 bg-green-50/80' : 'border-white bg-white/90'}`}>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('settings.pending.step')} 1</p>
+                                        {step1Done && <span className="text-green-500">&#10003;</span>}
+                                    </div>
+                                    <p className="mt-1 font-semibold text-slate-900">{t('settings.pending.step1')}</p>
+                                    <p className="mt-1 text-sm text-slate-600">{completedItems}/{profileCompletionItems.length} {t('settings.pending.fields_done')}</p>
+                                </div>
+                                <div className={`rounded-2xl border p-4 transition-colors ${step2Done ? 'border-green-200 bg-green-50/80' : 'border-white bg-white/90'}`}>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('settings.pending.step')} 2</p>
+                                        {step2Done && <span className="text-green-500">&#10003;</span>}
+                                    </div>
+                                    <p className="mt-1 font-semibold text-slate-900">{t('settings.pending.step2')}</p>
+                                    <p className="mt-1 text-sm text-slate-600">{currentPlan?.name || t('settings.pending.no_pack')}</p>
+                                </div>
+                                <div className={`rounded-2xl border p-4 transition-colors ${step3Done ? 'border-green-200 bg-green-50/80' : 'border-white bg-white/90'}`}>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('settings.pending.step')} 3</p>
+                                        {step3Done && <span className="text-green-500">&#10003;</span>}
+                                    </div>
+                                    <p className="mt-1 font-semibold text-slate-900">{t('settings.pending.step3')}</p>
+                                    <p className="mt-1 text-sm text-slate-600">
+                                        {receipts.length > 0
+                                            ? `${receipts.length} ${t('settings.pending.receipt_submitted')}`
+                                            : t('settings.pending.no_receipt')}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 {success && (
                     <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
                         {success}
@@ -216,6 +296,35 @@ export default function SettingsClient({ profile, subscription, plans, receipts,
                         <p className="rounded-2xl border border-blue-200 bg-white p-4 text-sm text-slate-600">
                             {t('settings.setup_hint')}
                         </p>
+                        <div className="grid gap-3 lg:grid-cols-2">
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('settings.billing.current_pack')}</p>
+                                <p className="mt-1 text-base font-semibold text-slate-900">{currentPlan?.name || t('settings.billing.choose_plan')}</p>
+                                <p className="mt-1 text-sm text-slate-600">
+                                    {maxVenues == null ? t('settings.pending.venue_limit_hint') : `${venuesCount} / ${maxVenues}`}
+                                </p>
+                            </div>
+                            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('settings.pending.venue_workspace')}</p>
+                                <p className="mt-1 text-base font-semibold text-slate-900">
+                                    {venuesRemaining == null ? t('settings.pending.first_venue') : `${venuesRemaining} ${t('settings.pending.slots_remaining')}`}
+                                </p>
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                    <Link
+                                        href="/dashboard/venues"
+                                        className="inline-flex items-center justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                                    >
+                                        {t('dashboard.actions.venues_title')}
+                                    </Link>
+                                    <Link
+                                        href="/dashboard/venues/new"
+                                        className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+                                    >
+                                        {t('dashboard.btn.add_venue')}
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <h2 className="text-lg font-bold text-slate-900 mb-6">{t('settings.profile')}</h2>

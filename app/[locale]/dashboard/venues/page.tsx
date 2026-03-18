@@ -8,6 +8,33 @@ import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/LanguageProvider';
 import { Emoji } from 'react-apple-emojis';
 
+type VenueCard = {
+    id: string;
+    name: string | null;
+    title?: string | null;
+    location?: string | null;
+    category?: string | null;
+    images?: string[] | null;
+    status: string;
+    views_count?: number | null;
+    inquiries_count?: number | null;
+    slug?: string | null;
+};
+
+type SubscriptionSummary = {
+    id: string;
+    status: string | null;
+    subscription_plans?: {
+        id: string;
+        name: string | null;
+        max_venues?: number | null;
+    } | Array<{
+        id: string;
+        name: string | null;
+        max_venues?: number | null;
+    }> | null;
+} | null;
+
 const statusColors = {
     approved: 'bg-green-100 text-green-700',
     pending: 'bg-amber-100 text-amber-700',
@@ -21,40 +48,65 @@ export default function VenuesPage() {
     const supabase = createClient();
     const { t } = useLanguage();
     const searchParams = useSearchParams();
-    const [venues, setVenues] = useState<any[]>([]);
+    const [venues, setVenues] = useState<VenueCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>(searchParams.get('status') || 'all');
+    const [subscription, setSubscription] = useState<SubscriptionSummary>(null);
 
     useEffect(() => {
-        fetchVenues();
-    }, []);
+        const fetchVenues = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-    const fetchVenues = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+                const { data: subscriptionData } = await supabase
+                    .from('user_subscriptions')
+                    .select(`
+                        id,
+                        status,
+                        created_at,
+                        subscription_plans (
+                            id,
+                            name,
+                            max_venues
+                        )
+                    `)
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
 
-            const { data, error } = await supabase
-                .from('venues')
-                .select('*')
-                .eq('owner_id', user.id)
-                .order('created_at', { ascending: false });
+                const { data, error } = await supabase
+                    .from('venues')
+                    .select('*')
+                    .eq('owner_id', user.id)
+                    .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error('Error fetching venues:', error);
-            } else {
-                setVenues(data || []);
+                if (error) {
+                    console.error('Error fetching venues:', error);
+                } else {
+                    setVenues((data || []) as VenueCard[]);
+                }
+
+                setSubscription((subscriptionData as SubscriptionSummary) || null);
+            } catch (error) {
+                console.error('Error:', error);
+            } finally {
+                setLoading(false);
             }
-        } catch (error) {
-            console.error('Error:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+        };
+
+        void fetchVenues();
+    }, [supabase]);
 
     const filteredVenues = filter === 'all'
         ? venues
         : venues.filter(v => v.status === filter);
+    const plan = Array.isArray(subscription?.subscription_plans)
+        ? subscription.subscription_plans[0]
+        : subscription?.subscription_plans;
+    const maxVenues = typeof plan?.max_venues === 'number' ? plan.max_venues : null;
+    const canAddMore = maxVenues == null ? true : venues.length < maxVenues;
 
     if (loading) {
         return (
@@ -83,13 +135,37 @@ export default function VenuesPage() {
                     </div>
                     <Link
                         href="/dashboard/venues/new"
-                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+                        className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-medium transition-colors ${
+                            canAddMore
+                                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                                : 'cursor-not-allowed bg-slate-300 text-slate-600'
+                        }`}
+                        aria-disabled={!canAddMore}
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                         </svg>
                         {t('dashboard.btn.add_venue')}
                     </Link>
+                </div>
+
+                <div className="mb-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('venues.pages_label')}</p>
+                        <h2 className="mt-1 text-lg font-bold text-slate-900">{t('venues.pages_title')}</h2>
+                        <p className="mt-2 text-sm text-slate-600">{t('venues.pages_desc')}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-900 p-5 text-white">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('venues.plan_capacity')}</p>
+                        <p className="mt-1 text-2xl font-bold">{venues.length}{maxVenues == null ? '' : ` / ${maxVenues}`}</p>
+                        <p className="mt-2 text-sm text-slate-300">
+                            {maxVenues == null
+                                ? t('venues.choose_pack')
+                                : canAddMore
+                                    ? t('venues.can_add_more')
+                                    : t('venues.limit_reached')}
+                        </p>
+                    </div>
                 </div>
 
                 {/* Filter Tabs */}
@@ -121,7 +197,7 @@ export default function VenuesPage() {
                                 {/* Cover Image */}
                                 <div className="h-40 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center overflow-hidden">
                                     {venue.images && venue.images[0] ? (
-                                        <img src={venue.images[0]} alt={venue.title} className="w-full h-full object-cover" />
+                                        <img src={venue.images[0]} alt={venue.title || venue.name || ''} className="w-full h-full object-cover" />
                                     ) : (
                                         <span className="text-5xl opacity-50"><Emoji name="classical-building" width={48} /></span>
                                     )}
@@ -130,7 +206,7 @@ export default function VenuesPage() {
                                 {/* Content */}
                                 <div className="p-4">
                                     <div className="flex items-start justify-between gap-2 mb-2">
-                                        <h3 className="font-bold text-slate-900 truncate">{venue.name || "Untitled"}</h3>
+                                        <h3 className="font-bold text-slate-900 truncate">{venue.title || venue.name || t('venues.untitled')}</h3>
                                         <span className={`px-2 py-0.5 text-xs font-medium rounded capitalize ${statusColors[venue.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-700'}`}>
                                             {t(`status.${venue.status}`)}
                                         </span>
@@ -138,10 +214,10 @@ export default function VenuesPage() {
 
                                     <div className="flex items-center gap-3 text-sm text-slate-600 mb-4">
                                         <span className="flex items-center gap-1">
-                                            <span><Emoji name="round-pushpin" width={14} /></span> {venue.location || "No Location"}
+                                            <span><Emoji name="round-pushpin" width={14} /></span> {venue.location || t('venues.no_location')}
                                         </span>
                                         <span className="flex items-center gap-1">
-                                            <span><Emoji name="label" width={14} /></span> {venue.category || "Uncategorized"}
+                                            <span><Emoji name="label" width={14} /></span> {venue.category || t('venues.uncategorized')}
                                         </span>
                                     </div>
 
@@ -158,7 +234,7 @@ export default function VenuesPage() {
 
                                     {venue.status === 'pending' && (
                                         <div className="p-2 bg-amber-50 rounded-lg text-xs text-amber-700 mb-4 flex items-center gap-1.5">
-                                            <Emoji name="hourglass-not-done" width={14} /> Under review. This usually takes 24-48 hours.
+                                            <Emoji name="hourglass-not-done" width={14} /> {t('venues.under_review')}
                                         </div>
                                     )}
 
@@ -167,15 +243,15 @@ export default function VenuesPage() {
                                             href={`/dashboard/venues/${venue.id}`}
                                             className="flex-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg text-center transition-colors"
                                         >
-                                            Edit
+                                            {t('venues.btn.edit')}
                                         </Link>
-                                        {venue.status === 'approved' && (
+                                        {(venue.status === 'approved' || venue.status === 'published') && (
                                             <Link
-                                                href={`/venues/${venue.slug}`}
+                                                href={`/venues/${venue.slug || venue.id}`}
                                                 target="_blank"
                                                 className="px-3 py-2 bg-primary-100 hover:bg-primary-200 text-primary-700 text-sm font-medium rounded-lg transition-colors"
                                             >
-                                                View
+                                                {t('venues.btn.view')}
                                             </Link>
                                         )}
                                     </div>
@@ -195,7 +271,11 @@ export default function VenuesPage() {
                         {filter === 'all' && (
                             <Link
                                 href="/dashboard/venues/new"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+                                className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
+                                    canAddMore
+                                        ? 'bg-primary-600 text-white hover:bg-primary-700'
+                                        : 'cursor-not-allowed bg-slate-300 text-slate-600'
+                                }`}
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
