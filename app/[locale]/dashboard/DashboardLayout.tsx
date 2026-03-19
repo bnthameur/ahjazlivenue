@@ -206,10 +206,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                             {/* Logo */}
                             <div className="h-16 flex items-center px-4 border-b border-slate-100 justify-between">
                                 <Link href="/" className="flex items-center gap-2">
-                                    <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                                        <Emoji name="classical-building" width={20} />
-                                    </div>
-                                    <span className="text-lg font-bold text-slate-800">Ahjazli Qaati</span>
+                                    <Image src="/logo.png" alt="Ahjazli Qaati" width={140} height={44} className="h-10 w-auto object-contain" />
                                 </Link>
                                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-slate-600">
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -335,10 +332,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                 {/* Logo */}
                 <div className="h-12 flex items-center px-3 border-b border-slate-100">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="w-7 h-7 bg-primary-600 rounded-lg flex items-center justify-center">
-                            <Emoji name="classical-building" width={16} />
-                        </div>
-                        <span className="text-sm font-bold text-slate-800">Ahjazli Qaati</span>
+                        <Image src="/logo.png" alt="Ahjazli Qaati" width={120} height={38} className="h-8 w-auto object-contain" />
                     </Link>
                 </div>
 
@@ -461,10 +455,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
 
                         {/* Mobile Logo (only visible when menu closed) */}
                         <div className="md:hidden flex items-center gap-2">
-                            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                                <Emoji name="classical-building" width={20} />
-                            </div>
-                            <span className="text-lg font-bold text-slate-800">Ahjazli</span>
+                            <Image src="/logo.png" alt="Ahjazli Qaati" width={140} height={44} className="h-10 w-auto object-contain" />
                         </div>
                     </div>
 

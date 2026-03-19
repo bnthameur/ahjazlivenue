@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Link, useRouter } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
+import Image from 'next/image';
 
 function LoginContent() {
     const t = useTranslations('Login');
@@ -45,8 +46,7 @@ function LoginContent() {
                 >
                     {/* Logo */}
                     <div className="flex items-center gap-2">
-                        {/* <img src="/logo.svg" alt="Logo" className="h-8" /> */}
-                        <span className="text-2xl font-bold text-slate-800">{t('brand')}</span>
+                        <Image src="/logo.png" alt={t('brand')} width={180} height={56} className="h-14 w-auto object-contain" />
                     </div>
 
                     {/* Welcome Text */}

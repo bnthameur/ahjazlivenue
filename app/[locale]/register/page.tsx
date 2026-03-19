@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { Link } from '@/i18n/navigation';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 
 export default function RegisterPage() {
     const t = useTranslations('Register');
@@ -40,8 +41,8 @@ export default function RegisterPage() {
                     className="w-full max-w-md space-y-8"
                 >
                     {/* Logo */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-2xl font-bold text-slate-800">{t('brand')}</span>
+                    <div className="flex items-center">
+                        <Image src="/logo.png" alt={t('brand')} width={160} height={52} className="h-12 w-auto object-contain" />
                     </div>
 
                     {/* Welcome Text */}
