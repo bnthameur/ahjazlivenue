@@ -41,7 +41,7 @@ export default async function SettingsPage() {
 
     const subscription = normalizeSubscriptionSummary(subscriptionData);
 
-    const [{ data: plans }, { data: receipts }, { data: settingsRows }] = await Promise.all([
+    const [{ data: plans }, { data: receipts }, { data: settingsRows }, { count: venuesCount }] = await Promise.all([
         supabase
             .from('subscription_plans')
             .select('id, name, name_ar, price_monthly, price_yearly, max_venues, max_images_per_venue, max_videos_per_venue')
@@ -52,6 +52,10 @@ export default async function SettingsPage() {
             .eq('user_id', user?.id)
             .order('created_at', { ascending: false }),
         supabase.from('platform_settings').select('key, value'),
+        supabase
+            .from('venues')
+            .select('*', { count: 'exact', head: true })
+            .eq('owner_id', user?.id),
     ]);
 
     return (
@@ -61,7 +65,7 @@ export default async function SettingsPage() {
             plans={plans || []}
             receipts={receipts || []}
             settings={settingsRows || []}
-            usage={null}
+            usage={{ venuesCount: venuesCount || 0 }}
         />
     );
 }

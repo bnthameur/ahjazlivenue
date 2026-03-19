@@ -70,6 +70,34 @@ export function hasActiveOwnerSubscription(subscription: UserSubscriptionSummary
     return remainingDays === null || remainingDays >= 0;
 }
 
+export interface PlanLimits {
+    maxVenues: number;
+    maxImagesPerVenue: number;
+    maxVideosPerVenue: number;
+    isActive: boolean;
+}
+
+const DEFAULT_LIMITS: PlanLimits = {
+    maxVenues: 1,
+    maxImagesPerVenue: 5,
+    maxVideosPerVenue: 0,
+    isActive: false,
+};
+
+export function getPlanLimits(subscription: UserSubscriptionSummary | null | undefined): PlanLimits {
+    if (!subscription || !hasActiveOwnerSubscription(subscription)) {
+        return DEFAULT_LIMITS;
+    }
+
+    const plan = subscription.subscription_plans;
+    return {
+        maxVenues: plan?.max_venues ?? 1,
+        maxImagesPerVenue: plan?.max_images_per_venue ?? 5,
+        maxVideosPerVenue: plan?.max_videos_per_venue ?? 0,
+        isActive: true,
+    };
+}
+
 export function getSubscriptionBanner(subscription: UserSubscriptionSummary | null | undefined) {
     if (!subscription) {
         return {

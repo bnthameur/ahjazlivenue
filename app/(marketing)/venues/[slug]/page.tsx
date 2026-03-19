@@ -1,266 +1,315 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from '@/i18n/navigation';
 import { Emoji } from 'react-apple-emojis';
+import { useParams } from 'next/navigation';
+import type { User } from '@supabase/supabase-js';
 
-// Mock venue detail - will be fetched from Supabase by slug
-const venueDetail = {
-    id: '1',
-    name: 'Le Grand Salon',
-    slug: 'le-grand-salon',
-    description: `Le Grand Salon is one of the most prestigious wedding venues in Algiers. With its elegant architecture and luxurious interior, it provides the perfect setting for your special day.
-
-Our venue features high ceilings, crystal chandeliers, and a spacious dance floor. We can accommodate intimate gatherings of 100 guests up to grand celebrations with 500 guests.
-
-Our dedicated team will work with you to create a truly memorable event, handling everything from catering to decoration.`,
-    category: 'Wedding Hall',
-    location: 'Algiers',
-    address: '123 Avenue de l\'Indépendance, Alger Centre',
-    capacity_min: 100,
-    capacity_max: 500,
-    price_range_min: 150000,
-    price_range_max: 350000,
-    phone: '0555 123 456',
-    whatsapp: '213555123456',
-    email: 'contact@legrandsalon.dz',
-    facebook_url: 'https://facebook.com/legrandsalon',
-    instagram_url: 'https://instagram.com/legrandsalon',
-    amenities: ['Parking', 'Air Conditioning', 'Sound System', 'Lighting', 'Stage', 'Catering', 'Bridal Suite', 'Dance Floor', 'Valet Parking'],
-    rating: 4.8,
-    reviews_count: 45,
-    views_count: 1245,
-    media: [
-        { type: 'image', url: null, caption: 'Main Hall' },
-        { type: 'image', url: null, caption: 'Reception Area' },
-        { type: 'image', url: null, caption: 'Dance Floor' },
-        { type: 'image', url: null, caption: 'Bridal Suite' },
-    ],
-    owner: {
-        name: 'Fatima Zahra',
-        business_name: 'Zahra Events',
-        member_since: '2024',
-    },
+type VenueRecord = {
+    id: string;
+    name: string;
+    slug: string;
+    description: string | null;
+    category?: string | null;
+    location?: string | null;
+    address?: string | null;
+    capacity_min?: number | null;
+    capacity_max?: number | null;
+    price_range_min?: number | null;
+    price_range_max?: number | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    email?: string | null;
+    facebook_url?: string | null;
+    instagram_url?: string | null;
+    amenities?: string[] | null;
+    views_count?: number | null;
+    images?: string[] | null;
+    venue_media?: Array<{
+        url: string;
+        caption?: string | null;
+        media_type?: string | null;
+        is_cover?: boolean | null;
+    }> | null;
 };
 
 export default function VenueDetailPage() {
-    const [user, setUser] = useState<any>(null);
+    const params = useParams();
+    const slug = params?.slug as string;
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const [venue] = useState(venueDetail);
+    const [venue, setVenue] = useState<VenueRecord | null>(null);
+    const [loadError, setLoadError] = useState('');
     const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-    // Check authentication status
     useEffect(() => {
-        const checkUser = async () => {
+        const loadPage = async () => {
             const supabase = createClient();
-            const { data: { session } = {} } = await supabase.auth.getSession();
+            const [{ data: { session } = {} }, venueResponse] = await Promise.all([
+                supabase.auth.getSession(),
+                fetch(`/api/venues/${slug}`, { cache: 'no-store' }),
+            ]);
+
             setUser(session?.user || null);
+
+            if (!venueResponse.ok) {
+                setLoadError('Venue not found.');
+                setLoading(false);
+                return;
+            }
+
+            const payload = await venueResponse.json();
+            setVenue(payload.data || null);
             setLoading(false);
         };
-        checkUser();
-    }, []);
 
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('fr-DZ').format(price);
-    };
+        if (slug) {
+            loadPage().catch((error) => {
+                console.error('Error loading venue page:', error);
+                setLoadError('Could not load this venue right now.');
+                setLoading(false);
+            });
+        }
+    }, [slug]);
+
+    const gallery = useMemo(() => {
+        if (!venue) return [];
+
+        const mediaFromTable = (venue.venue_media || [])
+            .filter((item) => item.url)
+            .map((item) => ({
+                url: item.url,
+                caption: item.caption || null,
+            }));
+
+        if (mediaFromTable.length > 0) return mediaFromTable;
+
+        return (venue.images || []).map((url) => ({
+            url,
+            caption: null,
+        }));
+    }, [venue]);
+
+    const selectedImage = gallery[selectedImageIndex] || gallery[0] || null;
+
+    const formatPrice = (price: number) => new Intl.NumberFormat('fr-DZ').format(price);
+
+    if (loading) {
+        return (
+            <div className="flex min-h-[60vh] items-center justify-center bg-slate-50">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-600 border-t-transparent" />
+            </div>
+        );
+    }
+
+    if (!venue || loadError) {
+        return (
+            <div className="min-h-screen bg-slate-50 px-4 py-16">
+                <div className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white p-10 text-center">
+                    <div className="mb-4 flex justify-center">
+                        <Emoji name="warning" width={48} />
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900">Venue unavailable</h1>
+                    <p className="mt-2 text-slate-600">{loadError || 'This venue page is not available.'}</p>
+                    <Link
+                        href="/venues"
+                        className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+                    >
+                        Back to venues
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50">
-
-
-            {/* Image Gallery */}
-            <section className="bg-white border-b border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-                    <div className="grid grid-cols-4 gap-4 h-64 md:h-96">
-                        <div className="col-span-4 md:col-span-2 bg-gradient-to-br from-primary-100 to-primary-200 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                            <span className="opacity-50 flex items-center"><Emoji name="classical-building" width={128} /></span>
-                            {venue.media[selectedImageIndex]?.caption && (
-                                <div className="absolute bottom-4 left-4 px-3 py-1 bg-black/50 text-white text-sm rounded-lg">
-                                    {venue.media[selectedImageIndex].caption}
+            <section className="border-b border-slate-200 bg-white">
+                <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                    <div className="grid h-64 grid-cols-4 gap-4 md:h-96">
+                        <div className="relative col-span-4 overflow-hidden rounded-2xl bg-gradient-to-br from-primary-100 to-primary-200 md:col-span-2">
+                            {selectedImage?.url ? (
+                                <img src={selectedImage.url} alt={venue.name} className="h-full w-full object-cover" />
+                            ) : (
+                                <div className="flex h-full items-center justify-center">
+                                    <span className="opacity-50"><Emoji name="classical-building" width={128} /></span>
+                                </div>
+                            )}
+                            {selectedImage?.caption && (
+                                <div className="absolute bottom-4 left-4 rounded-lg bg-black/50 px-3 py-1 text-sm text-white">
+                                    {selectedImage.caption}
                                 </div>
                             )}
                         </div>
-                        <div className="hidden md:grid col-span-2 grid-cols-2 gap-4">
-                            {venue.media.slice(0, 4).map((media, index) => (
-                                <div
+                        <div className="hidden col-span-2 grid-cols-2 gap-4 md:grid">
+                            {(gallery.length > 0 ? gallery : new Array(4).fill(null)).slice(0, 4).map((media, index) => (
+                                <button
                                     key={index}
+                                    type="button"
                                     onClick={() => setSelectedImageIndex(index)}
-                                    className={`bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl flex items-center justify-center cursor-pointer transition-all hover:opacity-80 ${selectedImageIndex === index ? 'ring-2 ring-primary-500' : ''
-                                        }`}
+                                    className={`overflow-hidden rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 transition-all hover:opacity-80 ${
+                                        selectedImageIndex === index ? 'ring-2 ring-primary-500' : ''
+                                    }`}
                                 >
-                                    <span className="opacity-50 flex items-center"><Emoji name="camera" width={32} /></span>
-                                </div>
+                                    {media?.url ? (
+                                        <img src={media.url} alt={`${venue.name} ${index + 1}`} className="h-full w-full object-cover" />
+                                    ) : (
+                                        <span className="flex h-full items-center justify-center opacity-50">
+                                            <Emoji name="camera" width={32} />
+                                        </span>
+                                    )}
+                                </button>
                             ))}
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid lg:grid-cols-3 gap-8">
-                    {/* Left Column - Details */}
-                    <div className="lg:col-span-2 space-y-8">
-                        {/* Title & Meta */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                        >
-                            <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                <div className="grid gap-8 lg:grid-cols-3">
+                    <div className="space-y-8 lg:col-span-2">
+                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                            <div className="mb-4 flex items-start justify-between gap-4">
                                 <div>
-                                    <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
-                                        {venue.name}
-                                    </h1>
+                                    <h1 className="mb-2 text-3xl font-bold text-slate-900 sm:text-4xl">{venue.name}</h1>
                                     <div className="flex flex-wrap items-center gap-3 text-slate-600">
-                                        <span className="flex items-center gap-1"><Emoji name="round-pushpin" width={16} /> {venue.location}</span>
-                                        <span>•</span>
-                                        <span className="flex items-center gap-1"><Emoji name="label" width={16} /> {venue.category}</span>
-                                        <span>•</span>
-                                        <span className="flex items-center gap-1"><Emoji name="star" width={16} /> {venue.rating} ({venue.reviews_count} reviews)</span>
+                                        {venue.location && <span className="flex items-center gap-1"><Emoji name="round-pushpin" width={16} /> {venue.location}</span>}
+                                        {venue.category && <span className="flex items-center gap-1"><Emoji name="label" width={16} /> {venue.category}</span>}
+                                        <span className="flex items-center gap-1"><Emoji name="eye" width={16} /> {venue.views_count || 0} views</span>
                                     </div>
                                 </div>
                             </div>
                         </motion.div>
 
-                        {/* Description */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="bg-white border border-slate-200 rounded-2xl p-6"
+                            className="rounded-2xl border border-slate-200 bg-white p-6"
                         >
-                            <h2 className="text-lg font-bold text-slate-900 mb-4">About this Venue</h2>
+                            <h2 className="mb-4 text-lg font-bold text-slate-900">About this Venue</h2>
                             <div className="prose prose-slate max-w-none">
-                                {venue.description.split('\n\n').map((para, i) => (
-                                    <p key={i} className="text-slate-600 mb-4 last:mb-0">{para}</p>
+                                {(venue.description || 'No description provided yet.').split('\n\n').map((para, i) => (
+                                    <p key={i} className="mb-4 text-slate-600 last:mb-0">{para}</p>
                                 ))}
                             </div>
                         </motion.div>
 
-                        {/* Quick Info */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="grid grid-cols-2 sm:grid-cols-4 gap-4"
+                            className="grid grid-cols-2 gap-4 sm:grid-cols-4"
                         >
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center flex flex-col items-center">
+                            <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white p-4 text-center">
                                 <div className="mb-1"><Emoji name="busts-in-silhouette" width={32} /></div>
                                 <div className="text-sm text-slate-500">Capacity</div>
-                                <div className="font-bold text-slate-900">{venue.capacity_min}-{venue.capacity_max}</div>
+                                <div className="font-bold text-slate-900">{venue.capacity_min || 0}-{venue.capacity_max || 0}</div>
                             </div>
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center flex flex-col items-center">
+                            <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white p-4 text-center">
                                 <div className="mb-1"><Emoji name="money-bag" width={32} /></div>
                                 <div className="text-sm text-slate-500">Starting Price</div>
-                                <div className="font-bold text-slate-900">{formatPrice(venue.price_range_min)} DZD</div>
+                                <div className="font-bold text-slate-900">
+                                    {venue.price_range_min ? `${formatPrice(venue.price_range_min)} DZD` : 'Contact for pricing'}
+                                </div>
                             </div>
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center flex flex-col items-center">
-                                <div className="mb-1"><Emoji name="star" width={32} /></div>
-                                <div className="text-sm text-slate-500">Rating</div>
-                                <div className="font-bold text-slate-900">{venue.rating}/5</div>
+                            <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white p-4 text-center">
+                                <div className="mb-1"><Emoji name="label" width={32} /></div>
+                                <div className="text-sm text-slate-500">Category</div>
+                                <div className="font-bold text-slate-900">{venue.category || 'Venue'}</div>
                             </div>
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center flex flex-col items-center">
+                            <div className="flex flex-col items-center rounded-xl border border-slate-200 bg-white p-4 text-center">
                                 <div className="mb-1"><Emoji name="eye" width={32} /></div>
                                 <div className="text-sm text-slate-500">Views</div>
-                                <div className="font-bold text-slate-900">{venue.views_count.toLocaleString()}</div>
+                                <div className="font-bold text-slate-900">{(venue.views_count || 0).toLocaleString()}</div>
                             </div>
                         </motion.div>
 
-                        {/* Amenities */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="bg-white border border-slate-200 rounded-2xl p-6"
+                            className="rounded-2xl border border-slate-200 bg-white p-6"
                         >
-                            <h2 className="text-lg font-bold text-slate-900 mb-4">Amenities & Features</h2>
+                            <h2 className="mb-4 text-lg font-bold text-slate-900">Amenities & Features</h2>
                             <div className="flex flex-wrap gap-2">
-                                {venue.amenities.map((amenity) => (
-                                    <span
-                                        key={amenity}
-                                        className="px-3 py-1.5 bg-primary-50 text-primary-700 rounded-full text-sm font-medium"
-                                    >
-                                        ✓ {amenity}
-                                    </span>
-                                ))}
+                                {(venue.amenities || []).length > 0 ? (
+                                    (venue.amenities || []).map((amenity) => (
+                                        <span
+                                            key={amenity}
+                                            className="rounded-full bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700"
+                                        >
+                                            {amenity}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-slate-500">Amenities will appear here once the owner adds them.</p>
+                                )}
                             </div>
                         </motion.div>
 
-                        {/* Location */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.4 }}
-                            className="bg-white border border-slate-200 rounded-2xl p-6"
+                            className="rounded-2xl border border-slate-200 bg-white p-6"
                         >
-                            <h2 className="text-lg font-bold text-slate-900 mb-4">Location</h2>
-                            <p className="text-slate-600 mb-4">{venue.address}</p>
-                            <div className="h-64 bg-slate-100 rounded-xl flex items-center justify-center">
-                                <span className="text-slate-400">📍 Map placeholder</span>
+                            <h2 className="mb-4 text-lg font-bold text-slate-900">Location</h2>
+                            <p className="mb-4 text-slate-600">{venue.address || venue.location || 'Address not available yet.'}</p>
+                            <div className="flex h-64 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                                Map preview coming soon
                             </div>
                         </motion.div>
                     </div>
 
-                    {/* Right Column - Contact Card */}
                     <div className="lg:col-span-1">
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="bg-white border border-slate-200 rounded-2xl p-6 sticky top-24"
+                            className="sticky top-24 rounded-2xl border border-slate-200 bg-white p-6"
                         >
-                            {/* Price Range */}
-                            <div className="mb-6 pb-6 border-b border-slate-100">
-                                <div className="text-sm text-slate-500 mb-1">Price Range</div>
+                            <div className="mb-6 border-b border-slate-100 pb-6">
+                                <div className="mb-1 text-sm text-slate-500">Price Range</div>
                                 <div className="text-3xl font-bold text-primary-600">
-                                    {formatPrice(venue.price_range_min)} - {formatPrice(venue.price_range_max)}
-                                    <span className="text-base font-normal text-slate-500 ml-1">DZD</span>
+                                    {venue.price_range_min || venue.price_range_max
+                                        ? `${venue.price_range_min ? formatPrice(venue.price_range_min) : '0'} - ${venue.price_range_max ? formatPrice(venue.price_range_max) : '0'}`
+                                        : 'Contact'}
+                                    {(venue.price_range_min || venue.price_range_max) && (
+                                        <span className="ml-1 text-base font-normal text-slate-500">DZD</span>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Owner Info */}
-                            <div className="mb-6 pb-6 border-b border-slate-100">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-xl font-bold">
-                                        {venue.owner.name[0]}
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-slate-900">{venue.owner.name}</div>
-                                        <div className="text-sm text-slate-500">{venue.owner.business_name}</div>
-                                    </div>
-                                </div>
-                                <div className="text-xs text-slate-400">Member since {venue.owner.member_since}</div>
-                            </div>
-
-                            {/* Contact Buttons (Protected) */}
-                            {loading ? (
-                                <div className="space-y-3 animate-pulse">
-                                    <div className="h-12 bg-slate-100 rounded-xl w-full"></div>
-                                    <div className="h-12 bg-slate-100 rounded-xl w-full"></div>
-                                </div>
-                            ) : user ? (
+                            {user ? (
                                 <div className="space-y-3">
-                                    <a
-                                        href={`https://wa.me/${venue.whatsapp}?text=Hi, I'm interested in ${venue.name} for my event.`}
-                                        target="_blank"
-                                        className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-xl transition-colors"
-                                    >
-                                        <Emoji name="speech-balloon" width={20} />
-                                        Contact via WhatsApp
-                                    </a>
-                                    <a
-                                        href={`tel:${venue.phone}`}
-                                        className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors"
-                                    >
-                                        <Emoji name="telephone-receiver" width={20} />
-                                        Call {venue.phone}
-                                    </a>
+                                    {venue.whatsapp && (
+                                        <a
+                                            href={`https://wa.me/${venue.whatsapp}?text=Hi, I'm interested in ${venue.name} for my event.`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 font-medium text-white transition-colors hover:bg-green-700"
+                                        >
+                                            <Emoji name="speech-balloon" width={20} />
+                                            Contact via WhatsApp
+                                        </a>
+                                    )}
+                                    {venue.phone && (
+                                        <a
+                                            href={`tel:${venue.phone}`}
+                                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-3 font-medium text-white transition-colors hover:bg-primary-700"
+                                        >
+                                            <Emoji name="telephone-receiver" width={20} />
+                                            Call {venue.phone}
+                                        </a>
+                                    )}
                                     {venue.email && (
                                         <a
                                             href={`mailto:${venue.email}?subject=Inquiry about ${venue.name}`}
-                                            className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-slate-200 text-slate-700 font-medium rounded-xl hover:bg-slate-50 transition-colors"
+                                            className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 font-medium text-slate-700 transition-colors hover:bg-slate-50"
                                         >
                                             <Emoji name="envelope" width={20} />
                                             Send Email
@@ -269,12 +318,12 @@ export default function VenueDetailPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <div className="p-4 bg-slate-50 rounded-xl text-center border border-slate-100 flex flex-col items-center">
+                                    <div className="flex flex-col items-center rounded-xl border border-slate-100 bg-slate-50 p-4 text-center">
                                         <div className="mb-2"><Emoji name="locked" width={32} /></div>
-                                        <p className="text-sm text-slate-600 mb-3">Login to view contact details and book this venue.</p>
+                                        <p className="mb-3 text-sm text-slate-600">Login to view contact details and book this venue.</p>
                                         <Link
                                             href="/login"
-                                            className="block w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-xl transition-colors"
+                                            className="block w-full rounded-xl bg-primary-600 px-4 py-3 font-medium text-white transition-colors hover:bg-primary-700"
                                         >
                                             Login / Register
                                         </Link>
@@ -282,16 +331,16 @@ export default function VenueDetailPage() {
                                 </div>
                             )}
 
-                            {/* Social Links */}
                             {(venue.facebook_url || venue.instagram_url) && (
-                                <div className="mt-6 pt-6 border-t border-slate-100">
-                                    <div className="text-sm text-slate-500 mb-3">Follow on social media</div>
+                                <div className="mt-6 border-t border-slate-100 pt-6">
+                                    <div className="mb-3 text-sm text-slate-500">Follow on social media</div>
                                     <div className="flex gap-3">
                                         {venue.facebook_url && (
                                             <a
                                                 href={venue.facebook_url}
                                                 target="_blank"
-                                                className="w-10 h-10 bg-blue-100 hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors"
+                                                rel="noreferrer"
+                                                className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 transition-colors hover:bg-blue-200"
                                             >
                                                 <Emoji name="blue-book" width={20} />
                                             </a>
@@ -300,7 +349,8 @@ export default function VenueDetailPage() {
                                             <a
                                                 href={venue.instagram_url}
                                                 target="_blank"
-                                                className="w-10 h-10 bg-pink-100 hover:bg-pink-200 rounded-lg flex items-center justify-center transition-colors"
+                                                rel="noreferrer"
+                                                className="flex h-10 w-10 items-center justify-center rounded-lg bg-pink-100 transition-colors hover:bg-pink-200"
                                             >
                                                 <Emoji name="camera" width={20} />
                                             </a>
@@ -312,8 +362,6 @@ export default function VenueDetailPage() {
                     </div>
                 </div>
             </div>
-
-
         </div>
     );
 }

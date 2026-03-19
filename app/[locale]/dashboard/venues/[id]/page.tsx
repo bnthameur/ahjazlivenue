@@ -225,6 +225,7 @@ export default function EditVenuePage() {
     
     const [formData, setFormData] = useState({
         name: '',
+        slug: '',
         description: '',
         category: '',
         location: '',
@@ -242,6 +243,7 @@ export default function EditVenuePage() {
         images: [] as string[],
         status: 'pending',
     });
+    const [planLimits, setPlanLimits] = useState<{ maxImages: number; maxVideos: number }>({ maxImages: 99, maxVideos: 99 });
 
     // Load venue data
     useEffect(() => {
@@ -256,6 +258,7 @@ export default function EditVenuePage() {
                 if (data) {
                     setFormData({
                         name: data.name || '',
+                        slug: data.slug || '',
                         description: data.description || '',
                         category: data.category || '',
                         location: data.location || '',
@@ -275,6 +278,25 @@ export default function EditVenuePage() {
                     });
                 }
                 setVideos(venueMedia);
+
+                // Fetch plan limits
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: sub } = await supabase
+                        .from('user_subscriptions')
+                        .select('*, subscription_plans(*)')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+                    if (sub?.subscription_plans) {
+                        const plan = Array.isArray(sub.subscription_plans) ? sub.subscription_plans[0] : sub.subscription_plans;
+                        setPlanLimits({
+                            maxImages: plan?.max_images_per_venue ?? 99,
+                            maxVideos: plan?.max_videos_per_venue ?? 99,
+                        });
+                    }
+                }
             } catch (error) {
                 console.error('Error fetching venue:', error);
             } finally {
@@ -289,6 +311,12 @@ export default function EditVenuePage() {
         if (!e.target.files?.length) return;
         const file = e.target.files[0];
         if (!file.type.startsWith('video/')) return;
+
+        if (videos.length >= planLimits.maxVideos) {
+            alert(`Your plan allows up to ${planLimits.maxVideos} videos per venue. Upgrade your plan to add more.`);
+            e.target.value = '';
+            return;
+        }
 
         setVideoUploading(true);
         setVideoUploadProgress(null);
@@ -337,13 +365,24 @@ export default function EditVenuePage() {
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
-        
+
         const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
         if (!files.length) return;
 
+        const remaining = planLimits.maxImages - formData.images.length;
+        if (remaining <= 0) {
+            alert(`Your plan allows up to ${planLimits.maxImages} images per venue. Upgrade your plan to add more.`);
+            e.target.value = '';
+            return;
+        }
+        const filesToUpload = files.slice(0, remaining);
+        if (filesToUpload.length < files.length) {
+            alert(`Only uploading ${filesToUpload.length} of ${files.length} images (plan limit: ${planLimits.maxImages}).`);
+        }
+
         setUploading(true);
         try {
-            const results = await uploadVenueImages(files, id, () => {});
+            const results = await uploadVenueImages(filesToUpload, id, () => {});
             setFormData(prev => ({
                 ...prev,
                 images: [...prev.images, ...results.map(r => r.publicUrl)]
@@ -368,6 +407,7 @@ export default function EditVenuePage() {
                 .from('venues')
                 .update({
                     name: formData.name,
+                    slug: formData.slug || undefined,
                     description: formData.description,
                     category: formData.category,
                     location: formData.location,
@@ -419,6 +459,23 @@ export default function EditVenuePage() {
                             onChange={(e) => updateField('name', e.target.value)}
                             placeholder="e.g., Le Grand Palace"
                         />
+                    </FormField>
+
+                    <FormField label="URL Slug" help="Custom URL for your venue page. Lowercase, hyphens only.">
+                        <div className="flex items-center gap-0">
+                            <span className="text-xs text-slate-400 bg-slate-100 border border-slate-200 border-e-0 rounded-s-xl px-3 py-2.5 whitespace-nowrap">
+                                ahjazliqaati.com/salles/
+                            </span>
+                            <Input
+                                value={formData.slug}
+                                onChange={(e) => {
+                                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
+                                    updateField('slug', val);
+                                }}
+                                placeholder="my-venue-name"
+                                className="rounded-s-none"
+                            />
+                        </div>
                     </FormField>
 
                     <FormField label="Category" required>
@@ -537,7 +594,7 @@ export default function EditVenuePage() {
         <div className="space-y-6">
             {/* Images Section */}
             <SectionCard
-                title="Photo Gallery"
+                title={`Photo Gallery (${formData.images.length}/${planLimits.maxImages})`}
                 description="Upload high-quality photos of your venue"
                 action={
                     <label className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg cursor-pointer hover:bg-primary-700 transition-colors flex items-center gap-2">
@@ -597,7 +654,7 @@ export default function EditVenuePage() {
 
             {/* Videos Section */}
             <SectionCard
-                title="Video Gallery"
+                title={`Video Gallery (${videos.length}/${planLimits.maxVideos})`}
                 description="Upload videos to showcase your venue (MP4, WebM, MOV — max 50MB each)"
                 action={
                     <label className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${

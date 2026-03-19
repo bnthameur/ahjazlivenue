@@ -71,20 +71,6 @@ export default function PaymentsClient({
         [settings]
     );
 
-    const upsertPendingSubscription = async (planId: string) => {
-        const payload = {
-            user_id: userId,
-            plan_id: planId,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-        };
-
-        const { error: insertError } = await supabase.from('user_subscriptions').insert(payload as never);
-        if (insertError) {
-            throw new Error(insertError.message);
-        }
-    };
-
     const handleReceiptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file || !selectedPlan) return;
@@ -95,7 +81,7 @@ export default function PaymentsClient({
 
         try {
             const ext = file.name.split('.').pop() || 'jpg';
-            const filePath = `payment-receipts/${userId}/${Date.now()}.${ext}`;
+            const filePath = `payment-receipts/${userId}/${selectedPlan.id}-${Date.now()}.${ext}`;
             const { error: uploadError } = await supabase.storage
                 .from('venue-images')
                 .upload(filePath, file, { upsert: true });
@@ -105,8 +91,6 @@ export default function PaymentsClient({
             const { data: publicData } = supabase.storage
                 .from('venue-images')
                 .getPublicUrl(filePath);
-
-            await upsertPendingSubscription(selectedPlan.id);
 
             const { data: receiptRow, error: receiptError } = await supabase
                 .from('payment_receipts')

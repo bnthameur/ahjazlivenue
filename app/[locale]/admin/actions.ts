@@ -187,6 +187,12 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
 
     try {
         const status = action === 'approve' ? 'approved' : 'rejected';
+        const extractPlanIdFromReceiptUrl = (receiptUrl?: string | null) => {
+            if (!receiptUrl) return null;
+            const decodedUrl = decodeURIComponent(receiptUrl);
+            const match = decodedUrl.match(/payment-receipts\/[^/]+\/([0-9a-f-]{36})-\d+\./i);
+            return match?.[1] || null;
+        };
 
         const { data: receipt, error: receiptError } = await supabase
             .from('payment_receipts')
@@ -197,7 +203,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
                 reviewed_by: user.id,
             })
             .eq('id', receiptId)
-            .select('user_id, amount')
+            .select('user_id, amount, receipt_url')
             .single();
 
         if (receiptError) throw receiptError;
@@ -223,6 +229,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
             const startDate = currentExpiry && currentExpiry > now ? currentExpiry : now;
             const expiryDate = new Date(startDate);
             expiryDate.setDate(expiryDate.getDate() + 30);
+            const selectedPlanId = extractPlanIdFromReceiptUrl(receipt.receipt_url);
 
             if (pendingSubscription?.id) {
                 await supabase
@@ -233,6 +240,16 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
                         expires_at: expiryDate.toISOString(),
                     })
                     .eq('id', pendingSubscription.id);
+            } else if (selectedPlanId) {
+                await supabase
+                    .from('user_subscriptions')
+                    .insert({
+                        user_id: receipt.user_id,
+                        plan_id: selectedPlanId,
+                        status: 'active',
+                        started_at: now.toISOString(),
+                        expires_at: expiryDate.toISOString(),
+                    });
             }
         }
 
