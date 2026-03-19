@@ -46,7 +46,7 @@ function LoginContent() {
                 >
                     {/* Logo */}
                     <div className="flex items-center gap-2">
-                        <Image src="/logo.png" alt={t('brand')} width={180} height={56} className="h-14 w-auto object-contain" />
+                        <Image src="/logo.png" alt={t('brand')} width={180} height={56} className="h-20 w-auto object-contain" unoptimized />
                     </div>
 
                     {/* Welcome Text */}

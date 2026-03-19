@@ -42,7 +42,7 @@ export default function RegisterPage() {
                 >
                     {/* Logo */}
                     <div className="flex items-center">
-                        <Image src="/logo.png" alt={t('brand')} width={160} height={52} className="h-12 w-auto object-contain" />
+                        <Image src="/logo.png" alt={t('brand')} width={160} height={52} className="h-16 w-auto object-contain" unoptimized />
                     </div>
 
                     {/* Welcome Text */}

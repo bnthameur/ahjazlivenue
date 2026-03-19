@@ -208,7 +208,7 @@ export default function AdminDashboardLayout({ user, profile, children }: AdminD
                                     <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                                         <Emoji name="shield" width={20} />
                                     </div>
-                                    <Image src="/logo.png" alt="Ahjazli Qaati" width={120} height={38} className="h-8 w-auto object-contain" />
+                                    <Image src="/logo.png" alt="Ahjazli Qaati" width={120} height={38} className="h-12 w-auto object-contain" unoptimized />
                                 </Link>
                                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-slate-600">
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,7 +285,7 @@ export default function AdminDashboardLayout({ user, profile, children }: AdminD
                         <div className="w-7 h-7 bg-purple-600 rounded-lg flex items-center justify-center">
                             <Emoji name="shield" width={16} />
                         </div>
-                        <Image src="/logo.png" alt="Ahjazli Qaati" width={100} height={32} className="h-7 w-auto object-contain" />
+                        <Image src="/logo.png" alt="Ahjazli Qaati" width={100} height={32} className="h-10 w-auto object-contain" unoptimized />
                     </Link>
                 </div>
 
@@ -332,7 +332,7 @@ export default function AdminDashboardLayout({ user, profile, children }: AdminD
                             <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                                 <Emoji name="shield" width={20} />
                             </div>
-                            <Image src="/logo.png" alt="Ahjazli Qaati" width={120} height={38} className="h-8 w-auto object-contain" />
+                            <Image src="/logo.png" alt="Ahjazli Qaati" width={120} height={38} className="h-12 w-auto object-contain" unoptimized />
                         </div>
                     </div>
 
