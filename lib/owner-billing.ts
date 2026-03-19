@@ -4,6 +4,7 @@ export interface SubscriptionPlanSummary {
     name_ar?: string | null;
     price_monthly?: number | null;
     price_yearly?: number | null;
+    duration_months?: number | null;
     max_venues?: number | null;
     max_images_per_venue?: number | null;
     max_videos_per_venue?: number | null;

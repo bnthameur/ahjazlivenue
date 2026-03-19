@@ -259,6 +259,69 @@ export default function AdminSettingsClient({ settings, venues, stats }: AdminSe
                     </div>
                 </section>
 
+                {/* Social Media Links */}
+                <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                        <Emoji name="globe-showing-americas" width={18} />
+                        <h2 className="font-semibold text-slate-800">Social Media Links</h2>
+                    </div>
+                    <div className="p-5 space-y-4">
+                        {[
+                            { key: 'social_facebook', label: 'Facebook', placeholder: 'https://facebook.com/yourpage' },
+                            { key: 'social_instagram', label: 'Instagram', placeholder: 'https://instagram.com/yourpage' },
+                            { key: 'social_tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@yourpage' },
+                        ].map(item => (
+                            <div key={item.key}>
+                                <label className="block text-sm font-medium text-slate-700 mb-2">{item.label}</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="url"
+                                        value={getString(item.key)}
+                                        onChange={e => setSettingsMap(prev => ({ ...prev, [item.key]: e.target.value }))}
+                                        placeholder={item.placeholder}
+                                        className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                                    />
+                                    <button
+                                        onClick={() => saveSetting(item.key, getString(item.key))}
+                                        disabled={savingKey === item.key}
+                                        className="px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                                    >
+                                        {savingKey === item.key ? 'Saving...' : 'Save'}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+
+                {/* Baridimob Payment Info */}
+                <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                        <Emoji name="money-bag" width={18} />
+                        <h2 className="font-semibold text-slate-800">Baridimob Payment Info</h2>
+                    </div>
+                    <div className="p-5">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Baridimob Account / RIP</label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={getString('payment_baridimob')}
+                                onChange={e => setSettingsMap(prev => ({ ...prev, payment_baridimob: e.target.value }))}
+                                placeholder="00799999XXXXXXXXXXX"
+                                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                            />
+                            <button
+                                onClick={() => saveSetting('payment_baridimob', getString('payment_baridimob'))}
+                                disabled={savingKey === 'payment_baridimob'}
+                                className="px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                            >
+                                {savingKey === 'payment_baridimob' ? 'Saving...' : 'Save'}
+                            </button>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">This info will be displayed to venue owners when they pay for their subscription.</p>
+                    </div>
+                </section>
+
                 {/* Featured Venues */}
                 <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                     <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
