@@ -230,6 +230,8 @@ export default function EditVenuePage() {
         category: '',
         location: '',
         address: '',
+        latitude: '',
+        longitude: '',
         capacity_min: '',
         capacity_max: '',
         price_range_min: '',
@@ -241,6 +243,8 @@ export default function EditVenuePage() {
         instagram_url: '',
         amenities: [] as string[],
         images: [] as string[],
+        equipment: [] as { name: string; value: string }[],
+        prestations: [] as { name: string; price: string }[],
         status: 'pending',
     });
     const [planLimits, setPlanLimits] = useState<{ maxImages: number; maxVideos: number }>({ maxImages: 99, maxVideos: 99 });
@@ -263,6 +267,8 @@ export default function EditVenuePage() {
                         category: data.category || '',
                         location: data.location || '',
                         address: data.address || '',
+                        latitude: data.latitude?.toString() || '',
+                        longitude: data.longitude?.toString() || '',
                         capacity_min: data.capacity_min?.toString() || '',
                         capacity_max: data.capacity_max?.toString() || '',
                         price_range_min: data.price_min?.toString() || '',
@@ -274,6 +280,8 @@ export default function EditVenuePage() {
                         instagram_url: data.instagram_url || '',
                         amenities: data.amenities || [],
                         images: data.images || [],
+                        equipment: data.equipment || [],
+                        prestations: (data.prestations || []).map((p: any) => ({ name: p.name || '', price: p.price?.toString() || '' })),
                         status: data.status || 'pending',
                     });
                 }
@@ -412,6 +420,8 @@ export default function EditVenuePage() {
                     category: formData.category,
                     location: formData.location,
                     address: formData.address,
+                    latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+                    longitude: formData.longitude ? parseFloat(formData.longitude) : null,
                     capacity_min: parseInt(formData.capacity_min) || 0,
                     capacity_max: parseInt(formData.capacity_max) || 0,
                     price_min: parseFloat(formData.price_range_min) || 0,
@@ -423,6 +433,8 @@ export default function EditVenuePage() {
                     instagram_url: formData.instagram_url,
                     amenities: formData.amenities,
                     images: formData.images,
+                    equipment: formData.equipment,
+                    prestations: formData.prestations.map(p => ({ name: p.name, price: parseFloat(p.price) || 0 })),
                 })
                 .eq('id', id);
 
@@ -513,6 +525,27 @@ export default function EditVenuePage() {
                         </FormField>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField label="Latitude" help="e.g. 36.7538">
+                            <Input
+                                type="number"
+                                step="any"
+                                value={formData.latitude}
+                                onChange={(e) => updateField('latitude', e.target.value)}
+                                placeholder="36.7538"
+                            />
+                        </FormField>
+                        <FormField label="Longitude" help="e.g. 3.0588">
+                            <Input
+                                type="number"
+                                step="any"
+                                value={formData.longitude}
+                                onChange={(e) => updateField('longitude', e.target.value)}
+                                placeholder="3.0588"
+                            />
+                        </FormField>
+                    </div>
+
                     <FormField label="Description" required help="Describe what makes your venue special">
                         <TextArea
                             value={formData.description}
@@ -585,6 +618,113 @@ export default function EditVenuePage() {
                             onClick={() => toggleAmenity(amenity.name)}
                         />
                     ))}
+                </div>
+            </SectionCard>
+
+            {/* Equipment */}
+            <SectionCard title="Equipment" description="List equipment and their details (e.g. Parking: 80 places, Boissons: Inclus)">
+                <div className="space-y-3">
+                    {formData.equipment.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                            <Input
+                                value={item.name}
+                                onChange={(e) => {
+                                    const updated = [...formData.equipment];
+                                    updated[idx] = { ...updated[idx], name: e.target.value };
+                                    setFormData(prev => ({ ...prev, equipment: updated }));
+                                    setHasChanges(true);
+                                }}
+                                placeholder="e.g. Parking"
+                                className="flex-1"
+                            />
+                            <Input
+                                value={item.value}
+                                onChange={(e) => {
+                                    const updated = [...formData.equipment];
+                                    updated[idx] = { ...updated[idx], value: e.target.value };
+                                    setFormData(prev => ({ ...prev, equipment: updated }));
+                                    setHasChanges(true);
+                                }}
+                                placeholder="e.g. 80 places"
+                                className="flex-1"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setFormData(prev => ({ ...prev, equipment: prev.equipment.filter((_, i) => i !== idx) }));
+                                    setHasChanges(true);
+                                }}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setFormData(prev => ({ ...prev, equipment: [...prev.equipment, { name: '', value: '' }] }));
+                            setHasChanges(true);
+                        }}
+                        className="w-full py-2.5 border-2 border-dashed border-slate-200 text-slate-500 hover:border-primary-300 hover:text-primary-600 rounded-xl text-sm font-medium transition-colors"
+                    >
+                        + Add equipment item
+                    </button>
+                </div>
+            </SectionCard>
+
+            {/* Prestations */}
+            <SectionCard title="Services & Pricing (Prestations)" description="List your services with prices in DZD">
+                <div className="space-y-3">
+                    {formData.prestations.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-3">
+                            <Input
+                                value={item.name}
+                                onChange={(e) => {
+                                    const updated = [...formData.prestations];
+                                    updated[idx] = { ...updated[idx], name: e.target.value };
+                                    setFormData(prev => ({ ...prev, prestations: updated }));
+                                    setHasChanges(true);
+                                }}
+                                placeholder="e.g. Location de salle (après-midi)"
+                                className="flex-[2]"
+                            />
+                            <div className="flex items-center gap-1 flex-1">
+                                <Input
+                                    type="number"
+                                    value={item.price}
+                                    onChange={(e) => {
+                                        const updated = [...formData.prestations];
+                                        updated[idx] = { ...updated[idx], price: e.target.value };
+                                        setFormData(prev => ({ ...prev, prestations: updated }));
+                                        setHasChanges(true);
+                                    }}
+                                    placeholder="200000"
+                                />
+                                <span className="text-xs text-slate-400 whitespace-nowrap">DZD</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setFormData(prev => ({ ...prev, prestations: prev.prestations.filter((_, i) => i !== idx) }));
+                                    setHasChanges(true);
+                                }}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setFormData(prev => ({ ...prev, prestations: [...prev.prestations, { name: '', price: '' }] }));
+                            setHasChanges(true);
+                        }}
+                        className="w-full py-2.5 border-2 border-dashed border-slate-200 text-slate-500 hover:border-primary-300 hover:text-primary-600 rounded-xl text-sm font-medium transition-colors"
+                    >
+                        + Add service
+                    </button>
                 </div>
             </SectionCard>
         </div>
