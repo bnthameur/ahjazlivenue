@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { uploadVenueImages, uploadVenueVideo, deleteVenueVideo, fetchVenueMedia, VenueMediaRecord, VideoUploadProgress } from '@/lib/supabase/storage';
 import { formatBytes } from '@/lib/media-optimizer';
@@ -212,6 +212,7 @@ export default function EditVenuePage() {
     const params = useParams();
     const id = params?.id as string;
     const supabase = createClient();
+    const te = useTranslations('EditVenue');
     
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [loading, setLoading] = useState(true);
@@ -243,8 +244,6 @@ export default function EditVenuePage() {
         instagram_url: '',
         amenities: [] as string[],
         images: [] as string[],
-        equipment: [] as { name: string; value: string }[],
-        prestations: [] as { name: string; price: string }[],
         status: 'pending',
     });
     const [planLimits, setPlanLimits] = useState<{ maxImages: number; maxVideos: number }>({ maxImages: 5, maxVideos: 0 });
@@ -281,8 +280,6 @@ export default function EditVenuePage() {
                         instagram_url: data.instagram_url || '',
                         amenities: data.amenities || [],
                         images: data.images || [],
-                        equipment: data.equipment || [],
-                        prestations: (data.prestations || []).map((p: any) => ({ name: p.name || '', price: p.price?.toString() || '' })),
                         status: data.status || 'pending',
                     });
                 }
@@ -444,8 +441,6 @@ export default function EditVenuePage() {
                     instagram_url: formData.instagram_url,
                     amenities: formData.amenities,
                     images: formData.images,
-                    equipment: formData.equipment,
-                    prestations: formData.prestations.map(p => ({ name: p.name, price: parseFloat(p.price) || 0 })),
                 })
                 .eq('id', id);
 
@@ -475,15 +470,13 @@ export default function EditVenuePage() {
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
                         <AlertCircle className="w-8 h-8 text-red-500" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">Subscription Required</h2>
-                    <p className="text-sm text-slate-600 mb-6">
-                        Your subscription has expired or is not active. You cannot edit venues or upload media until you renew your plan.
-                    </p>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">{te('sub_required_title')}</h2>
+                    <p className="text-sm text-slate-600 mb-6">{te('sub_required_desc')}</p>
                     <button
                         onClick={() => router.push(`/${locale}/dashboard/settings`)}
                         className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
                     >
-                        Go to Settings
+                        {te('go_to_settings')}
                     </button>
                 </div>
             </div>
@@ -495,11 +488,11 @@ export default function EditVenuePage() {
     const renderOverviewTab = () => (
         <div className="space-y-6">
             <SectionCard 
-                title="Basic Information" 
-                description="Essential details about your venue"
+                title={te('basic_title')}
+                description={te('basic_desc')}
             >
                 <div className="space-y-4">
-                    <FormField label="Venue Name" required>
+                    <FormField label={te('venue_name')} required>
                         <Input
                             value={formData.name}
                             onChange={(e) => updateField('name', e.target.value)}
@@ -507,7 +500,7 @@ export default function EditVenuePage() {
                         />
                     </FormField>
 
-                    <FormField label="URL Slug" help="Custom URL for your venue page. Lowercase, hyphens only.">
+                    <FormField label={te('url_slug')} help={te('slug_help')}>
                         <div className="flex items-center gap-0">
                             <span className="text-xs text-slate-400 bg-slate-100 border border-slate-200 border-e-0 rounded-s-xl px-3 py-2.5 whitespace-nowrap">
                                 ahjazliqaati.com/salles/
@@ -524,7 +517,7 @@ export default function EditVenuePage() {
                         </div>
                     </FormField>
 
-                    <FormField label="Category" required>
+                    <FormField label={te('category')} required>
                         <div className="grid grid-cols-4 gap-2">
                             {categories.map((cat) => (
                                 <CategoryCard
@@ -538,19 +531,19 @@ export default function EditVenuePage() {
                     </FormField>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Wilaya" required>
+                        <FormField label={te('wilaya')} required>
                             <select
                                 value={formData.location}
                                 onChange={(e) => updateField('location', e.target.value)}
                                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                             >
-                                <option value="">Select Wilaya</option>
+                                <option value="">{te('wilaya')}</option>
                                 {wilayas.map((w) => (
                                     <option key={w} value={w}>{w}</option>
                                 ))}
                             </select>
                         </FormField>
-                        <FormField label="Address">
+                        <FormField label={te('address')}>
                             <Input
                                 value={formData.address}
                                 onChange={(e) => updateField('address', e.target.value)}
@@ -560,7 +553,7 @@ export default function EditVenuePage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Latitude" help="e.g. 36.7538">
+                        <FormField label={te('latitude')} help="e.g. 36.7538">
                             <Input
                                 type="number"
                                 step="any"
@@ -569,7 +562,7 @@ export default function EditVenuePage() {
                                 placeholder="36.7538"
                             />
                         </FormField>
-                        <FormField label="Longitude" help="e.g. 3.0588">
+                        <FormField label={te('longitude')} help="e.g. 3.0588">
                             <Input
                                 type="number"
                                 step="any"
@@ -580,7 +573,7 @@ export default function EditVenuePage() {
                         </FormField>
                     </div>
 
-                    <FormField label="Description" required help="Describe what makes your venue special">
+                    <FormField label={te('description')} required help={te('desc_help')}>
                         <TextArea
                             value={formData.description}
                             onChange={(e) => updateField('description', e.target.value)}
@@ -595,12 +588,12 @@ export default function EditVenuePage() {
 
     const renderDetailsTab = () => (
         <div className="space-y-6">
-            <SectionCard title="Capacity & Pricing" description="Set your venue capacity and price range">
+            <SectionCard title={te('capacity_title')} description={te('capacity_desc')}>
                 <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <h4 className="font-medium text-slate-900">Guest Capacity</h4>
+                        <h4 className="font-medium text-slate-900">{te('capacity_label')}</h4>
                         <div className="grid grid-cols-2 gap-3">
-                            <FormField label="Minimum">
+                            <FormField label={te('minimum')}>
                                 <Input
                                     type="number"
                                     value={formData.capacity_min}
@@ -608,7 +601,7 @@ export default function EditVenuePage() {
                                     placeholder="50"
                                 />
                             </FormField>
-                            <FormField label="Maximum">
+                            <FormField label={te('maximum')}>
                                 <Input
                                     type="number"
                                     value={formData.capacity_max}
@@ -619,9 +612,9 @@ export default function EditVenuePage() {
                         </div>
                     </div>
                     <div className="space-y-4">
-                        <h4 className="font-medium text-slate-900">Price Range (DZD)</h4>
+                        <h4 className="font-medium text-slate-900">{te('price_label')}</h4>
                         <div className="grid grid-cols-2 gap-3">
-                            <FormField label="From">
+                            <FormField label={te('from')}>
                                 <Input
                                     type="number"
                                     value={formData.price_range_min}
@@ -629,7 +622,7 @@ export default function EditVenuePage() {
                                     placeholder="50000"
                                 />
                             </FormField>
-                            <FormField label="To">
+                            <FormField label={te('to')}>
                                 <Input
                                     type="number"
                                     value={formData.price_range_max}
@@ -642,7 +635,7 @@ export default function EditVenuePage() {
                 </div>
             </SectionCard>
 
-            <SectionCard title="Amenities" description="Select all features your venue offers">
+            <SectionCard title={te('amenities_title')} description={te('amenities_desc')}>
                 <div className="flex flex-wrap gap-2">
                     {amenitiesList.map((amenity) => (
                         <AmenityTag
@@ -655,112 +648,6 @@ export default function EditVenuePage() {
                 </div>
             </SectionCard>
 
-            {/* Equipment */}
-            <SectionCard title="Equipment" description="List equipment and their details (e.g. Parking: 80 places, Boissons: Inclus)">
-                <div className="space-y-3">
-                    {formData.equipment.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
-                            <Input
-                                value={item.name}
-                                onChange={(e) => {
-                                    const updated = [...formData.equipment];
-                                    updated[idx] = { ...updated[idx], name: e.target.value };
-                                    setFormData(prev => ({ ...prev, equipment: updated }));
-                                    setHasChanges(true);
-                                }}
-                                placeholder="e.g. Parking"
-                                className="flex-1"
-                            />
-                            <Input
-                                value={item.value}
-                                onChange={(e) => {
-                                    const updated = [...formData.equipment];
-                                    updated[idx] = { ...updated[idx], value: e.target.value };
-                                    setFormData(prev => ({ ...prev, equipment: updated }));
-                                    setHasChanges(true);
-                                }}
-                                placeholder="e.g. 80 places"
-                                className="flex-1"
-                            />
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setFormData(prev => ({ ...prev, equipment: prev.equipment.filter((_, i) => i !== idx) }));
-                                    setHasChanges(true);
-                                }}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                    ))}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setFormData(prev => ({ ...prev, equipment: [...prev.equipment, { name: '', value: '' }] }));
-                            setHasChanges(true);
-                        }}
-                        className="w-full py-2.5 border-2 border-dashed border-slate-200 text-slate-500 hover:border-primary-300 hover:text-primary-600 rounded-xl text-sm font-medium transition-colors"
-                    >
-                        + Add equipment item
-                    </button>
-                </div>
-            </SectionCard>
-
-            {/* Prestations */}
-            <SectionCard title="Services & Pricing (Prestations)" description="List your services with prices in DZD">
-                <div className="space-y-3">
-                    {formData.prestations.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
-                            <Input
-                                value={item.name}
-                                onChange={(e) => {
-                                    const updated = [...formData.prestations];
-                                    updated[idx] = { ...updated[idx], name: e.target.value };
-                                    setFormData(prev => ({ ...prev, prestations: updated }));
-                                    setHasChanges(true);
-                                }}
-                                placeholder="e.g. Location de salle (après-midi)"
-                                className="flex-[2]"
-                            />
-                            <div className="flex items-center gap-1 flex-1">
-                                <Input
-                                    type="number"
-                                    value={item.price}
-                                    onChange={(e) => {
-                                        const updated = [...formData.prestations];
-                                        updated[idx] = { ...updated[idx], price: e.target.value };
-                                        setFormData(prev => ({ ...prev, prestations: updated }));
-                                        setHasChanges(true);
-                                    }}
-                                    placeholder="200000"
-                                />
-                                <span className="text-xs text-slate-400 whitespace-nowrap">DZD</span>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setFormData(prev => ({ ...prev, prestations: prev.prestations.filter((_, i) => i !== idx) }));
-                                    setHasChanges(true);
-                                }}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                    ))}
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setFormData(prev => ({ ...prev, prestations: [...prev.prestations, { name: '', price: '' }] }));
-                            setHasChanges(true);
-                        }}
-                        className="w-full py-2.5 border-2 border-dashed border-slate-200 text-slate-500 hover:border-primary-300 hover:text-primary-600 rounded-xl text-sm font-medium transition-colors"
-                    >
-                        + Add service
-                    </button>
-                </div>
-            </SectionCard>
         </div>
     );
 
@@ -768,12 +655,12 @@ export default function EditVenuePage() {
         <div className="space-y-6">
             {/* Images Section */}
             <SectionCard
-                title={`Photo Gallery (${formData.images.length}/${planLimits.maxImages})`}
-                description="Upload high-quality photos of your venue"
+                title={`${te('photos_title')} (${formData.images.length}/${planLimits.maxImages})`}
+                description={te('photos_desc')}
                 action={
                     <label className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg cursor-pointer hover:bg-primary-700 transition-colors flex items-center gap-2">
                         <Upload className="w-4 h-4" />
-                        Add Photos
+                        {te('add_photos')}
                         <input
                             type="file"
                             multiple
@@ -787,14 +674,14 @@ export default function EditVenuePage() {
                 {uploading && (
                     <div className="mb-4 p-3 bg-primary-50 border border-primary-200 rounded-xl flex items-center gap-3">
                         <Loader2 className="w-4 h-4 text-primary-600 animate-spin shrink-0" />
-                        <p className="text-sm text-primary-700 font-medium">Uploading photos...</p>
+                        <p className="text-sm text-primary-700 font-medium">{te('uploading')}</p>
                     </div>
                 )}
                 {formData.images.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl">
                         <Camera className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium">No photos yet</p>
-                        <p className="text-sm text-slate-400">Upload photos to showcase your venue</p>
+                        <p className="text-slate-500 font-medium">{te('photos_title')}</p>
+                        <p className="text-sm text-slate-400">{te('photos_desc')}</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -817,7 +704,7 @@ export default function EditVenuePage() {
                                 </button>
                                 {idx === 0 && (
                                     <div className="absolute bottom-2 left-2 px-2 py-1 bg-primary-600 text-white text-xs font-medium rounded-md">
-                                        Cover
+                                        ★
                                     </div>
                                 )}
                             </motion.div>
@@ -828,8 +715,8 @@ export default function EditVenuePage() {
 
             {/* Videos Section */}
             <SectionCard
-                title={`Video Gallery (${videos.length}/${planLimits.maxVideos})`}
-                description="Upload videos to showcase your venue (MP4, WebM, MOV — max 50MB each)"
+                title={`${te('videos_title')} (${videos.length}/${planLimits.maxVideos})`}
+                description={te('videos_desc')}
                 action={
                     <label className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${
                         videoUploading
@@ -837,7 +724,7 @@ export default function EditVenuePage() {
                             : 'bg-violet-600 text-white cursor-pointer hover:bg-violet-700'
                     }`}>
                         <Video className="w-4 h-4" />
-                        Add Video
+                        {te('add_video')}
                         <input
                             type="file"
                             accept="video/*"
@@ -854,12 +741,7 @@ export default function EditVenuePage() {
                         <div className="flex items-center gap-3 mb-2">
                             <Loader2 className="w-4 h-4 text-violet-600 animate-spin shrink-0" />
                             <p className="text-sm text-violet-700 font-medium">
-                                {videoUploadProgress?.stage === 'generating-thumbnail' && 'Generating thumbnail...'}
-                                {videoUploadProgress?.stage === 'compressing-video' && 'Compressing video...'}
-                                {videoUploadProgress?.stage === 'uploading-video' && 'Uploading video...'}
-                                {videoUploadProgress?.stage === 'uploading-thumbnail' && 'Uploading thumbnail...'}
-                                {videoUploadProgress?.stage === 'saving-record' && 'Saving...'}
-                                {!videoUploadProgress && 'Processing...'}
+                                {te('uploading')}
                             </p>
                         </div>
                         <div className="h-1.5 bg-violet-200 rounded-full overflow-hidden">
@@ -874,8 +756,8 @@ export default function EditVenuePage() {
                 {videos.length === 0 ? (
                     <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl">
                         <Video className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500 font-medium">No videos yet</p>
-                        <p className="text-sm text-slate-400">Upload a video tour of your venue</p>
+                        <p className="text-slate-500 font-medium">{te('videos_title')}</p>
+                        <p className="text-sm text-slate-400">{te('videos_desc')}</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -931,10 +813,10 @@ export default function EditVenuePage() {
 
     const renderContactTab = () => (
         <div className="space-y-6">
-            <SectionCard title="Contact Information" description="How customers can reach you">
+            <SectionCard title={te('contact_title')} description={te('contact_desc')}>
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Phone Number" required>
+                        <FormField label={te('phone')} required>
                             <Input
                                 type="tel"
                                 value={formData.phone}
@@ -942,17 +824,17 @@ export default function EditVenuePage() {
                                 placeholder="0555 123 456"
                             />
                         </FormField>
-                        <FormField label="WhatsApp">
+                        <FormField label={te('whatsapp')}>
                             <Input
                                 type="tel"
                                 value={formData.whatsapp}
                                 onChange={(e) => updateField('whatsapp', e.target.value)}
-                                placeholder="Same as phone"
+                                placeholder="0555 123 456"
                             />
                         </FormField>
                     </div>
 
-                    <FormField label="Email Address">
+                    <FormField label={te('email')}>
                         <Input
                             type="email"
                             value={formData.email}
@@ -963,14 +845,14 @@ export default function EditVenuePage() {
                 </div>
             </SectionCard>
 
-            <SectionCard title="Social Media" description="Connect your social profiles">
+            <SectionCard title={te('social_title')} description={te('social_desc')}>
                 <div className="space-y-3">
                     <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl">
                         <Facebook className="w-5 h-5 text-blue-600" />
                         <Input
                             value={formData.facebook_url}
                             onChange={(e) => updateField('facebook_url', e.target.value)}
-                            placeholder="Facebook page URL"
+                            placeholder={te('facebook')}
                             className="flex-1 bg-white"
                         />
                     </div>
@@ -979,7 +861,7 @@ export default function EditVenuePage() {
                         <Input
                             value={formData.instagram_url}
                             onChange={(e) => updateField('instagram_url', e.target.value)}
-                            placeholder="Instagram profile URL"
+                            placeholder={te('instagram')}
                             className="flex-1 bg-white"
                         />
                     </div>
@@ -1002,7 +884,7 @@ export default function EditVenuePage() {
                     <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                         <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                             <Eye className="w-4 h-4" />
-                            Live Preview
+                            {te('tab_overview')}
                         </h3>
                         <button 
                             onClick={() => setShowPreview(false)}
@@ -1024,7 +906,7 @@ export default function EditVenuePage() {
                                 )}
                                 {formData.status === 'pending' && (
                                     <span className="absolute top-2 left-2 px-2 py-1 bg-amber-400 text-amber-900 text-xs font-medium rounded-md">
-                                        Pending
+                                        ⏳
                                     </span>
                                 )}
                             </div>
@@ -1032,20 +914,20 @@ export default function EditVenuePage() {
                             {/* Info */}
                             <div className="p-4">
                                 <h4 className="font-bold text-slate-900 truncate">
-                                    {formData.name || 'Your Venue Name'}
+                                    {formData.name || te('venue_name')}
                                 </h4>
                                 <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
                                     <MapPin className="w-3.5 h-3.5" />
-                                    {formData.location || 'Location'}
+                                    {formData.location || te('wilaya')}
                                 </p>
-                                
+
                                 <div className="flex items-center gap-4 mt-3 text-sm">
                                     <span className="text-slate-600">
-                                        {formData.capacity_max ? `${formData.capacity_max} guests` : 'Capacity'}
+                                        {formData.capacity_max ? `${formData.capacity_max}` : te('capacity_label')}
                                     </span>
                                     <span className="text-slate-300">|</span>
                                     <span className="text-primary-600 font-medium">
-                                        {formData.price_range_min ? `From ${parseInt(formData.price_range_min).toLocaleString()} DZD` : 'Price'}
+                                        {formData.price_range_min ? `${parseInt(formData.price_range_min).toLocaleString()} DZD` : te('price_label')}
                                     </span>
                                 </div>
                                 
@@ -1070,21 +952,21 @@ export default function EditVenuePage() {
                         <div className="grid grid-cols-4 gap-2 mt-4">
                             <div className="text-center p-3 bg-slate-50 rounded-lg">
                                 <div className="text-lg font-bold text-slate-900">{formData.images.length}</div>
-                                <div className="text-xs text-slate-500">Photos</div>
+                                <div className="text-xs text-slate-500">{te('photos_title')}</div>
                             </div>
                             <div className="text-center p-3 bg-slate-50 rounded-lg">
                                 <div className="text-lg font-bold text-slate-900">{videos.length}</div>
-                                <div className="text-xs text-slate-500">Videos</div>
+                                <div className="text-xs text-slate-500">{te('videos_title')}</div>
                             </div>
                             <div className="text-center p-3 bg-slate-50 rounded-lg">
                                 <div className="text-lg font-bold text-slate-900">{formData.amenities.length}</div>
-                                <div className="text-xs text-slate-500">Amenities</div>
+                                <div className="text-xs text-slate-500">{te('amenities_title')}</div>
                             </div>
                             <div className="text-center p-3 bg-slate-50 rounded-lg">
                                 <div className="text-lg font-bold text-slate-900">
                                     {formData.phone ? '✓' : '—'}
                                 </div>
-                                <div className="text-xs text-slate-500">Contact</div>
+                                <div className="text-xs text-slate-500">{te('tab_contact')}</div>
                             </div>
                         </div>
                     </div>
@@ -1107,7 +989,7 @@ export default function EditVenuePage() {
                                 <ArrowLeft className="w-5 h-5" />
                             </button>
                             <div>
-                                <h1 className="font-semibold text-slate-900">Edit Venue</h1>
+                                <h1 className="font-semibold text-slate-900">{te('page_title')}</h1>
                                 <p className="text-sm text-slate-500">{formData.name || 'Loading...'}</p>
                             </div>
                         </div>
@@ -1118,15 +1000,15 @@ export default function EditVenuePage() {
                                 className="lg:hidden px-3 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium flex items-center gap-2"
                             >
                                 <Eye className="w-4 h-4" />
-                                Preview
+                                {te('tab_media')}
                             </button>
-                            
+
                             <button
                                 onClick={handleSave}
                                 disabled={!hasChanges || saving}
                                 className={`px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2 transition-all ${
-                                    hasChanges 
-                                        ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg shadow-primary-500/20' 
+                                    hasChanges
+                                        ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-lg shadow-primary-500/20'
                                         : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                                 }`}
                             >
@@ -1135,7 +1017,7 @@ export default function EditVenuePage() {
                                 ) : (
                                     <Save className="w-4 h-4" />
                                 )}
-                                {saving ? 'Saving...' : 'Save Changes'}
+                                {saving ? te('saving') : te('save')}
                             </button>
                         </div>
                     </div>
@@ -1146,26 +1028,26 @@ export default function EditVenuePage() {
                             active={activeTab === 'overview'}
                             onClick={() => setActiveTab('overview')}
                             icon={Sparkles}
-                            label="Overview"
+                            label={te('tab_overview')}
                         />
                         <TabButton
                             active={activeTab === 'details'}
                             onClick={() => setActiveTab('details')}
                             icon={CheckCircle2}
-                            label="Details"
+                            label={te('tab_details')}
                         />
                         <TabButton
                             active={activeTab === 'photos'}
                             onClick={() => setActiveTab('photos')}
                             icon={Camera}
-                            label="Media"
+                            label={te('tab_media')}
                             badge={formData.images.length + videos.length}
                         />
                         <TabButton
                             active={activeTab === 'contact'}
                             onClick={() => setActiveTab('contact')}
                             icon={Phone}
-                            label="Contact"
+                            label={te('tab_contact')}
                         />
                     </div>
                 </div>

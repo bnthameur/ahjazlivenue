@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { Link } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { Emoji } from 'react-apple-emojis';
 import { getSubscriptionBanner, hasActiveOwnerSubscription, normalizeSubscriptionSummary, type UserSubscriptionSummary } from '@/lib/owner-billing';
 
@@ -112,7 +112,8 @@ export default function DashboardPage() {
     const isPending = profile?.status === 'pending';
     const isRejected = profile?.status === 'rejected';
     const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
-    const subscriptionBanner = getSubscriptionBanner(subscription);
+    const currentLocale = useLocale();
+    const subscriptionBanner = getSubscriptionBanner(subscription, currentLocale as 'en' | 'fr' | 'ar');
 
     if (loading) {
         return (

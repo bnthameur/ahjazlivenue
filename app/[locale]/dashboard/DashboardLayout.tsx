@@ -131,7 +131,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
     const router = useRouter();
     const pathname = usePathname();
     const supabase = createClient();
-    const { t, dir } = useLanguage();
+    const { t, dir, language: dashLang } = useLanguage();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
 
@@ -181,7 +181,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
     const isPending = profile?.status === 'pending';
     const isRejected = profile?.status === 'rejected';
     const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
-    const subscriptionBanner = getSubscriptionBanner(subscription);
+    const subscriptionBanner = getSubscriptionBanner(subscription, dashLang as 'en' | 'fr' | 'ar');
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row" dir={dir}>

@@ -99,12 +99,47 @@ export function getPlanLimits(subscription: UserSubscriptionSummary | null | und
     };
 }
 
-export function getSubscriptionBanner(subscription: UserSubscriptionSummary | null | undefined) {
+const bannerTranslations = {
+    en: {
+        no_sub_title: 'Choose a pack to activate your owner account',
+        no_sub_desc: 'Complete your profile and choose a pack before you start receiving bookings and managing paid venue access.',
+        expired_title: 'Your subscription has expired',
+        expired_desc: 'Renew your pack to keep your venue-owner account fully active and avoid interruptions.',
+        expiring_title: (days: number) => `Your subscription ends in ${days} day${days === 1 ? '' : 's'}`,
+        expiring_desc: 'Renew early to avoid losing access to paid owner features.',
+        pending_title: 'Your subscription is awaiting activation',
+        pending_desc: 'Submit your payment receipt or complete online payment so the admin team can activate your pack.',
+    },
+    fr: {
+        no_sub_title: 'Choisissez un pack pour activer votre compte',
+        no_sub_desc: 'Complétez votre profil et choisissez un pack avant de commencer à recevoir des réservations.',
+        expired_title: 'Votre abonnement a expiré',
+        expired_desc: 'Renouvelez votre pack pour garder votre compte propriétaire actif.',
+        expiring_title: (days: number) => `Votre abonnement expire dans ${days} jour${days === 1 ? '' : 's'}`,
+        expiring_desc: 'Renouvelez tôt pour éviter de perdre l\'accès aux fonctionnalités.',
+        pending_title: 'Votre abonnement attend l\'activation',
+        pending_desc: 'Soumettez votre reçu de paiement pour que l\'admin puisse activer votre pack.',
+    },
+    ar: {
+        no_sub_title: 'اختر باقة لتفعيل حسابك',
+        no_sub_desc: 'أكمل ملفك واختر باقة قبل البدء في استقبال الحجوزات وإدارة قاعتك.',
+        expired_title: 'انتهى اشتراكك',
+        expired_desc: 'جدد باقتك للحفاظ على حسابك نشطاً.',
+        expiring_title: (days: number) => `ينتهي اشتراكك خلال ${days} يوم`,
+        expiring_desc: 'جدد مبكراً لتجنب فقدان الوصول.',
+        pending_title: 'اشتراكك بانتظار التفعيل',
+        pending_desc: 'ارفع وصل الدفع ليتمكن المشرف من تفعيل باقتك.',
+    },
+};
+
+export function getSubscriptionBanner(subscription: UserSubscriptionSummary | null | undefined, language: 'en' | 'fr' | 'ar' = 'ar') {
+    const t = bannerTranslations[language] || bannerTranslations.ar;
+
     if (!subscription) {
         return {
             tone: 'warning' as const,
-            title: 'Choose a pack to activate your owner account',
-            description: 'Complete your profile and choose a pack before you start receiving bookings and managing paid venue access.',
+            title: t.no_sub_title,
+            description: t.no_sub_desc,
         };
     }
 
@@ -114,24 +149,24 @@ export function getSubscriptionBanner(subscription: UserSubscriptionSummary | nu
     if (remainingDays !== null && remainingDays < 0) {
         return {
             tone: 'error' as const,
-            title: 'Your subscription has expired',
-            description: 'Renew your pack to keep your venue-owner account fully active and avoid interruptions.',
+            title: t.expired_title,
+            description: t.expired_desc,
         };
     }
 
     if (remainingDays !== null && remainingDays <= 10) {
         return {
             tone: 'warning' as const,
-            title: `Your subscription ends in ${remainingDays} day${remainingDays === 1 ? '' : 's'}`,
-            description: 'Renew early to avoid losing access to paid owner features.',
+            title: t.expiring_title(remainingDays),
+            description: t.expiring_desc,
         };
     }
 
     if (status && !['active', 'trial'].includes(status)) {
         return {
             tone: 'warning' as const,
-            title: 'Your subscription is awaiting activation',
-            description: 'Submit your payment receipt or complete online payment so the admin team can activate your pack.',
+            title: t.pending_title,
+            description: t.pending_desc,
         };
     }
 

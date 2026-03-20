@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
+import { useLocale } from 'next-intl';
 import { getSubscriptionBanner, type UserSubscriptionSummary } from '@/lib/owner-billing';
 
 interface Plan {
@@ -56,7 +57,8 @@ export default function PaymentsClient({
     const [error, setError] = useState('');
     const [receipts, setReceipts] = useState(initialReceipts);
     const selectedPlan = plans.find((plan) => plan.id === selectedPlanId) || null;
-    const subscriptionBanner = getSubscriptionBanner(subscription);
+    const paymentsLocale = useLocale();
+    const subscriptionBanner = getSubscriptionBanner(subscription, paymentsLocale as 'en' | 'fr' | 'ar');
 
     const onlinePaymentUrl = useMemo(
         () => settings.find((item) => ['online_payment_url', 'payment_link', 'owner_payment_link'].includes(item.key))?.value || null,
