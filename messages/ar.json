@@ -245,7 +245,19 @@
         "instagram": "رابط إنستغرام",
         "sub_required_title": "مطلوب اشتراك",
         "sub_required_desc": "انتهى اشتراكك أو غير نشط. لا يمكنك تعديل القاعات أو رفع الوسائط حتى تجدد باقتك.",
-        "go_to_settings": "الذهاب إلى الإعدادات"
+        "go_to_settings": "الذهاب إلى الإعدادات",
+        "amenity_parking": "موقف سيارات",
+        "amenity_air_conditioning": "تكييف",
+        "amenity_sound_system": "نظام صوت",
+        "amenity_lighting": "إضاءة",
+        "amenity_catering": "تموين",
+        "amenity_wifi": "واي فاي",
+        "amenity_wheelchair_access": "وصول ذوي الاحتياجات",
+        "amenity_dance_floor": "حلبة رقص",
+        "amenity_garden": "حديقة",
+        "amenity_pool": "مسبح",
+        "amenity_terrace": "تراس",
+        "amenity_stage": "مسرح"
     },
     "wilayas": {
         "Adrar": "أدرار",
@@ -378,6 +390,7 @@
             "users": "المستخدمين",
             "payments": "المدفوعات",
             "inquiries": "الطلبات",
+            "plans": "الخطط",
             "settings": "الإعدادات"
         },
         "dashboard": {

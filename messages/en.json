@@ -245,7 +245,19 @@
         "instagram": "Instagram URL",
         "sub_required_title": "Subscription Required",
         "sub_required_desc": "Your subscription has expired or is not active. You cannot edit venues or upload media until you renew your plan.",
-        "go_to_settings": "Go to Settings"
+        "go_to_settings": "Go to Settings",
+        "amenity_parking": "Parking",
+        "amenity_air_conditioning": "Air Conditioning",
+        "amenity_sound_system": "Sound System",
+        "amenity_lighting": "Lighting",
+        "amenity_catering": "Catering",
+        "amenity_wifi": "Wi-Fi",
+        "amenity_wheelchair_access": "Wheelchair Access",
+        "amenity_dance_floor": "Dance Floor",
+        "amenity_garden": "Garden",
+        "amenity_pool": "Pool",
+        "amenity_terrace": "Terrace",
+        "amenity_stage": "Stage"
     },
     "wilayas": {
         "Adrar": "Adrar",
@@ -378,6 +390,7 @@
             "users": "Users",
             "payments": "Payments",
             "inquiries": "Inquiries",
+            "plans": "Plans",
             "settings": "Settings"
         },
         "dashboard": {

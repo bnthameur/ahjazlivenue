@@ -42,19 +42,19 @@ const wilayas = [
     'Béni Abbès', 'Timimoun', 'Touggourt', 'Djanet', 'In Salah', 'In Guezzam'
 ];
 
-const amenitiesList = [
-    { name: 'Parking', icon: Car },
-    { name: 'Air Conditioning', icon: Wind },
-    { name: 'Sound System', icon: Speaker },
-    { name: 'Lighting', icon: Lightbulb },
-    { name: 'Catering', icon: ChefHat },
-    { name: 'Wi-Fi', icon: Wifi },
-    { name: 'Wheelchair Access', icon: Accessibility },
-    { name: 'Dance Floor', icon: Music },
-    { name: 'Garden', icon: Flower2 },
-    { name: 'Pool', icon: Waves },
-    { name: 'Terrace', icon: Sun },
-    { name: 'Stage', icon: Star },
+const getAmenitiesList = (te: (key: string) => string) => [
+    { name: 'Parking', label: te('amenity_parking'), icon: Car },
+    { name: 'Air Conditioning', label: te('amenity_air_conditioning'), icon: Wind },
+    { name: 'Sound System', label: te('amenity_sound_system'), icon: Speaker },
+    { name: 'Lighting', label: te('amenity_lighting'), icon: Lightbulb },
+    { name: 'Catering', label: te('amenity_catering'), icon: ChefHat },
+    { name: 'Wi-Fi', label: te('amenity_wifi'), icon: Wifi },
+    { name: 'Wheelchair Access', label: te('amenity_wheelchair_access'), icon: Accessibility },
+    { name: 'Dance Floor', label: te('amenity_dance_floor'), icon: Music },
+    { name: 'Garden', label: te('amenity_garden'), icon: Flower2 },
+    { name: 'Pool', label: te('amenity_pool'), icon: Waves },
+    { name: 'Terrace', label: te('amenity_terrace'), icon: Sun },
+    { name: 'Stage', label: te('amenity_stage'), icon: Star },
 ];
 
 // --- Components ---
@@ -178,13 +178,13 @@ const CategoryCard = ({
     );
 };
 
-const AmenityTag = ({ 
-    amenity, 
-    selected, 
-    onClick 
-}: { 
-    amenity: typeof amenitiesList[number]; 
-    selected: boolean; 
+const AmenityTag = ({
+    amenity,
+    selected,
+    onClick
+}: {
+    amenity: { name: string; label: string; icon: any };
+    selected: boolean;
     onClick: () => void;
 }) => {
     const Icon = amenity.icon;
@@ -193,13 +193,13 @@ const AmenityTag = ({
             type="button"
             onClick={onClick}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all ${
-                selected 
-                    ? 'bg-primary-600 text-white' 
+                selected
+                    ? 'bg-primary-600 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
         >
             <Icon className="w-3.5 h-3.5" />
-            {amenity.name}
+            {amenity.label}
         </button>
     );
 };
@@ -213,7 +213,8 @@ export default function EditVenuePage() {
     const id = params?.id as string;
     const supabase = createClient();
     const te = useTranslations('EditVenue');
-    
+    const amenitiesList = getAmenitiesList(te);
+
     const [activeTab, setActiveTab] = useState<Tab>('overview');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);

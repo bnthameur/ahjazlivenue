@@ -245,7 +245,19 @@
         "instagram": "URL Instagram",
         "sub_required_title": "Abonnement requis",
         "sub_required_desc": "Votre abonnement a expiré ou n'est pas actif. Vous ne pouvez pas modifier les salles avant de renouveler votre formule.",
-        "go_to_settings": "Aller aux paramètres"
+        "go_to_settings": "Aller aux paramètres",
+        "amenity_parking": "Parking",
+        "amenity_air_conditioning": "Climatisation",
+        "amenity_sound_system": "Système Audio",
+        "amenity_lighting": "Éclairage",
+        "amenity_catering": "Traiteur",
+        "amenity_wifi": "Wi-Fi",
+        "amenity_wheelchair_access": "Accès Handicapé",
+        "amenity_dance_floor": "Piste de Danse",
+        "amenity_garden": "Jardin",
+        "amenity_pool": "Piscine",
+        "amenity_terrace": "Terrasse",
+        "amenity_stage": "Scène"
     },
     "wilayas": {
         "Adrar": "Adrar",
@@ -378,6 +390,7 @@
             "users": "Utilisateurs",
             "payments": "Paiements",
             "inquiries": "Demandes",
+            "plans": "Forfaits",
             "settings": "Paramètres"
         },
         "dashboard": {
