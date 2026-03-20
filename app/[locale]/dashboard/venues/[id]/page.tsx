@@ -247,7 +247,8 @@ export default function EditVenuePage() {
         prestations: [] as { name: string; price: string }[],
         status: 'pending',
     });
-    const [planLimits, setPlanLimits] = useState<{ maxImages: number; maxVideos: number }>({ maxImages: 99, maxVideos: 99 });
+    const [planLimits, setPlanLimits] = useState<{ maxImages: number; maxVideos: number }>({ maxImages: 5, maxVideos: 0 });
+    const [hasActiveSub, setHasActiveSub] = useState(true); // assume true until checked
 
     // Load venue data
     useEffect(() => {
@@ -287,7 +288,7 @@ export default function EditVenuePage() {
                 }
                 setVideos(venueMedia);
 
-                // Fetch plan limits
+                // Fetch plan limits & subscription status
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
                     const { data: sub } = await supabase
@@ -297,11 +298,21 @@ export default function EditVenuePage() {
                         .order('created_at', { ascending: false })
                         .limit(1)
                         .maybeSingle();
-                    if (sub?.subscription_plans) {
+
+                    const status = (sub?.status || '').toLowerCase();
+                    const isActive = ['active', 'trial'].includes(status);
+                    const expiresAt = sub?.expires_at ? new Date(sub.expires_at) : null;
+                    const expired = expiresAt ? expiresAt.getTime() < Date.now() : false;
+
+                    if (!sub || !isActive || expired) {
+                        setHasActiveSub(false);
+                        setPlanLimits({ maxImages: 0, maxVideos: 0 });
+                    } else if (sub?.subscription_plans) {
+                        setHasActiveSub(true);
                         const plan = Array.isArray(sub.subscription_plans) ? sub.subscription_plans[0] : sub.subscription_plans;
                         setPlanLimits({
-                            maxImages: plan?.max_images_per_venue ?? 99,
-                            maxVideos: plan?.max_videos_per_venue ?? 99,
+                            maxImages: plan?.max_images_per_venue ?? 5,
+                            maxVideos: plan?.max_videos_per_venue ?? 0,
                         });
                     }
                 }
@@ -452,6 +463,29 @@ export default function EditVenuePage() {
         return (
             <div className="flex items-center justify-center h-96">
                 <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
+            </div>
+        );
+    }
+
+    // Block editing if no active subscription — read-only view with warning
+    if (!hasActiveSub) {
+        return (
+            <div className="p-6 lg:p-8 max-w-4xl mx-auto">
+                <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
+                        <AlertCircle className="w-8 h-8 text-red-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">Subscription Required</h2>
+                    <p className="text-sm text-slate-600 mb-6">
+                        Your subscription has expired or is not active. You cannot edit venues or upload media until you renew your plan.
+                    </p>
+                    <button
+                        onClick={() => router.push(`/${locale}/dashboard/settings`)}
+                        className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
+                    >
+                        Go to Settings
+                    </button>
+                </div>
             </div>
         );
     }

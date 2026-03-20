@@ -182,7 +182,13 @@
         },
         "success": {
             "venue_created": "Your venue has been submitted for review!"
-        }
+        },
+        "subscription_required_title": "Subscription Required",
+        "subscription_required_desc": "You need an active subscription plan to create venues. Go to Settings to choose a plan and upload your payment receipt.",
+        "go_to_settings": "Go to Settings",
+        "venue_limit_title": "Venue Limit Reached",
+        "venue_limit_desc": "Your current plan allows only 1 venue. Edit your existing venue or contact support.",
+        "back_to_venues": "Back to My Venues"
     },
     "wilayas": {
         "Adrar": "Adrar",

@@ -374,7 +374,65 @@ export default function NewVenuePage() {
     const [videoUploading, setVideoUploading] = useState(false);
     const [videoUploadProgress, setVideoUploadProgress] = useState<VideoUploadProgress | null>(null);
     const [videoError, setVideoError] = useState<string | null>(null);
-    
+
+    // Subscription & plan limit state
+    const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+    const [hasActiveSub, setHasActiveSub] = useState(false);
+    const [planLimits, setPlanLimits] = useState({ maxImages: 5, maxVideos: 0, maxVenues: 1 });
+    const [currentVenueCount, setCurrentVenueCount] = useState(0);
+
+    // Check subscription on mount — block page if not paid
+    useEffect(() => {
+        const checkSubscription = async () => {
+            try {
+                const supabaseClient = (await import('@/lib/supabase/client')).createClient();
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                if (!user) { router.push(`/${locale}/dashboard/settings`); return; }
+
+                // Fetch subscription
+                const { data: sub } = await supabaseClient
+                    .from('user_subscriptions')
+                    .select('id, status, expires_at, subscription_plans(id, max_venues, max_images_per_venue, max_videos_per_venue)')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                const status = (sub?.status || '').toLowerCase();
+                const isActive = ['active', 'trial'].includes(status);
+                const expiresAt = sub?.expires_at ? new Date(sub.expires_at) : null;
+                const expired = expiresAt ? expiresAt.getTime() < Date.now() : false;
+
+                if (!sub || !isActive || expired) {
+                    setHasActiveSub(false);
+                    setSubscriptionLoading(false);
+                    return;
+                }
+
+                setHasActiveSub(true);
+                const plan = Array.isArray(sub.subscription_plans) ? sub.subscription_plans[0] : sub.subscription_plans;
+                setPlanLimits({
+                    maxImages: plan?.max_images_per_venue ?? 5,
+                    maxVideos: plan?.max_videos_per_venue ?? 0,
+                    maxVenues: plan?.max_venues ?? 1,
+                });
+
+                // Fetch current venue count
+                const { count } = await supabaseClient
+                    .from('venues')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('owner_id', user.id);
+                setCurrentVenueCount(count || 0);
+            } catch (err) {
+                console.error('Subscription check failed:', err);
+                setHasActiveSub(false);
+            } finally {
+                setSubscriptionLoading(false);
+            }
+        };
+        checkSubscription();
+    }, [locale, router]);
+
     const categories = useMemo(() => getCategories(t), [t]);
     const wilayas = useMemo(() => getWilayas(t), [t]);
     const amenitiesList = useMemo(() => getAmenities(t), [t]);
@@ -459,16 +517,25 @@ export default function NewVenuePage() {
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
-        
+
         const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
         if (!files.length) return;
 
+        // Enforce plan image limit
+        const remaining = planLimits.maxImages - formData.images.length;
+        if (remaining <= 0) {
+            setError(t('NewVenue.errors.upload_failed') + `: Plan limit ${planLimits.maxImages} images.`);
+            e.target.value = '';
+            return;
+        }
+        const filesToUpload = files.slice(0, remaining);
+
         setUploading(true);
         setError(null);
-        
+
         try {
             const tempVenueId = `temp_${Date.now()}`;
-            const results = await uploadVenueImages(files, tempVenueId, (progress) => {
+            const results = await uploadVenueImages(filesToUpload, tempVenueId, (progress) => {
                 setUploadProgress({ current: progress.current, total: progress.total });
             });
 
@@ -503,6 +570,13 @@ export default function NewVenuePage() {
         if (!e.target.files?.length) return;
         const file = e.target.files[0];
         if (!file.type.startsWith('video/')) return;
+
+        // Enforce plan video limit
+        if (videos.length >= planLimits.maxVideos) {
+            setVideoError(`Plan limit: ${planLimits.maxVideos} video(s) per venue.`);
+            e.target.value = '';
+            return;
+        }
 
         setVideoUploading(true);
         setVideoError(null);
@@ -1263,6 +1337,57 @@ export default function NewVenuePage() {
     );
 
     // --- Main Render ---
+
+    // Loading subscription check
+    if (subscriptionLoading) {
+        return (
+            <div className="min-h-screen bg-slate-50/50 flex items-center justify-center">
+                <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" />
+            </div>
+        );
+    }
+
+    // Block: No active subscription
+    if (!hasActiveSub) {
+        return (
+            <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-50 flex items-center justify-center">
+                        <AlertCircle className="w-8 h-8 text-red-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t('NewVenue.subscription_required_title')}</h2>
+                    <p className="text-sm text-slate-600 mb-6">{t('NewVenue.subscription_required_desc')}</p>
+                    <button
+                        onClick={() => router.push(`/${locale}/dashboard/settings`)}
+                        className="w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
+                    >
+                        {t('NewVenue.go_to_settings')}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // Block: Venue limit reached
+    if (currentVenueCount >= planLimits.maxVenues) {
+        return (
+            <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-amber-50 flex items-center justify-center">
+                        <AlertCircle className="w-8 h-8 text-amber-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t('NewVenue.venue_limit_title')}</h2>
+                    <p className="text-sm text-slate-600 mb-6">{t('NewVenue.venue_limit_desc')}</p>
+                    <button
+                        onClick={() => router.push(`/${locale}/dashboard/venues`)}
+                        className="w-full px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-700 transition-colors"
+                    >
+                        {t('NewVenue.back_to_venues')}
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50/50">

@@ -182,7 +182,13 @@
         },
         "success": {
             "venue_created": "Votre lieu a été soumis pour révision !"
-        }
+        },
+        "subscription_required_title": "Abonnement requis",
+        "subscription_required_desc": "Vous avez besoin d'un abonnement actif pour créer des salles. Allez dans les paramètres pour choisir une formule et télécharger votre reçu de paiement.",
+        "go_to_settings": "Aller aux paramètres",
+        "venue_limit_title": "Limite de salles atteinte",
+        "venue_limit_desc": "Votre formule actuelle ne permet qu'une seule salle. Modifiez votre salle existante ou contactez le support.",
+        "back_to_venues": "Retour à mes salles"
     },
     "wilayas": {
         "Adrar": "Adrar",
