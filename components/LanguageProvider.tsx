@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useLocale } from 'next-intl';
 import { routing, Locale, createLocalizedPath } from '@/i18n/routing';
 
 type Language = Locale;
@@ -215,6 +216,14 @@ export const translations = {
         'admin.activity.title': 'Recent Activity',
         'admin.activity.empty': 'No recent activity',
         'admin.activity.empty_desc': 'Activity logs will appear here',
+        'dashboard.nav.notifications': 'Notifications',
+        'dashboard.nav.approval_required': 'Account approval required',
+        'settings.desc_placeholder': 'Tell us about your venue business...',
+        'settings.billing.subscription_expired': 'Your subscription has expired',
+        'settings.billing.subscription_expired_desc': 'Renew your pack to reactivate your venue.',
+        'settings.billing.subscription_expiring': 'Your subscription expires in {days} days',
+        'settings.billing.limited_offer': 'Limited offer',
+        'settings.billing.venue_count': 'venue',
     },
     fr: {
         'nav.browse': 'Parcourir les lieux',
@@ -416,6 +425,14 @@ export const translations = {
         'admin.activity.title': 'Activité Récente',
         'admin.activity.empty': 'Aucune activité récente',
         'admin.activity.empty_desc': 'Les journaux d\'activité apparaîtront ici',
+        'dashboard.nav.notifications': 'Notifications',
+        'dashboard.nav.approval_required': 'Approbation du compte requise',
+        'settings.desc_placeholder': 'Décrivez votre activité de salle...',
+        'settings.billing.subscription_expired': 'Votre abonnement a expiré',
+        'settings.billing.subscription_expired_desc': 'Renouvelez votre pack pour réactiver votre salle.',
+        'settings.billing.subscription_expiring': 'Votre abonnement expire dans {days} jours',
+        'settings.billing.limited_offer': 'Offre limitée',
+        'settings.billing.venue_count': 'salle',
     },
     ar: {
         'nav.browse': 'تصفح القاعات',
@@ -617,23 +634,31 @@ export const translations = {
         'admin.activity.title': 'النشاط الأخير',
         'admin.activity.empty': 'لا يوجد نشاط حديث',
         'admin.activity.empty_desc': 'ستظهر سجلات النشاط هنا',
+        'dashboard.nav.notifications': 'الإشعارات',
+        'dashboard.nav.approval_required': 'مطلوب الموافقة على الحساب',
+        'settings.desc_placeholder': 'أخبرنا عن نشاطك في مجال القاعات...',
+        'settings.billing.subscription_expired': 'انتهى اشتراكك',
+        'settings.billing.subscription_expired_desc': 'جدد باقتك لإعادة تفعيل قاعتك.',
+        'settings.billing.subscription_expiring': 'ينتهي اشتراكك خلال {days} يوم',
+        'settings.billing.limited_offer': 'عرض محدود',
+        'settings.billing.venue_count': 'قاعة',
     }
 };
 
 
 export const LanguageProvider = ({ children }: { children: React.ReactNode }) => {
-    const [language, setLanguageState] = useState<Language>(() => {
-        if (typeof window === 'undefined') return routing.defaultLocale;
+    // Use next-intl's useLocale() as the source of truth — it reads the locale
+    // from the server-side URL params passed through NextIntlClientProvider,
+    // so it works correctly during both SSR and client hydration.
+    const intlLocale = useLocale() as Language;
+    const [language, setLanguageState] = useState<Language>(intlLocale);
 
-        const fullPath = window.location.pathname;
-        const localeMatch = fullPath.match(/^\/(en|fr|ar)(?:\/|$)/);
-        const urlLocale = localeMatch?.[1] as Language | null;
-        const savedLocale = localStorage.getItem('language') as Language | null;
-
-        return (urlLocale && routing.locales.includes(urlLocale))
-            ? urlLocale
-            : (savedLocale && routing.locales.includes(savedLocale) ? savedLocale : routing.defaultLocale);
-    });
+    // Sync language state when the intl locale changes (e.g. after navigation)
+    useEffect(() => {
+        if (intlLocale !== language) {
+            setLanguageState(intlLocale);
+        }
+    }, [intlLocale]);
 
     useEffect(() => {
         document.documentElement.lang = language;

@@ -190,13 +190,13 @@ export default function BillingSettingsSection({
                         </div>
                         {isExpired && (
                             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                                <p className="font-semibold">{language === 'ar' ? 'انتهى اشتراكك' : language === 'fr' ? 'Votre abonnement a expiré' : 'Your subscription has expired'}</p>
-                                <p className="mt-1">{language === 'ar' ? 'جدد باقتك لإعادة تفعيل قاعتك.' : language === 'fr' ? 'Renouvelez votre pack pour réactiver votre salle.' : 'Renew your pack to reactivate your venue.'}</p>
+                                <p className="font-semibold">{t('settings.billing.subscription_expired')}</p>
+                                <p className="mt-1">{t('settings.billing.subscription_expired_desc')}</p>
                             </div>
                         )}
                         {isExpiringSoon && !isExpired && (
                             <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                                <p className="font-semibold">{language === 'ar' ? `ينتهي اشتراكك خلال ${remainingDays} يوم` : language === 'fr' ? `Votre abonnement expire dans ${remainingDays} jours` : `Your subscription expires in ${remainingDays} days`}</p>
+                                <p className="font-semibold">{t('settings.billing.subscription_expiring').replace('{days}', String(remainingDays))}</p>
                             </div>
                         )}
                     </>
@@ -235,7 +235,7 @@ export default function BillingSettingsSection({
                                         <div className="absolute -top-3 start-4">
                                             <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1 text-xs font-bold text-white shadow-sm">
                                                 <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
-                                                {language === 'ar' ? 'عرض محدود' : language === 'fr' ? 'Offre limitée' : 'Limited offer'}
+                                                {t('settings.billing.limited_offer')}
                                             </span>
                                         </div>
                                     )}
@@ -256,7 +256,7 @@ export default function BillingSettingsSection({
                                     <div className="mt-4 space-y-2 text-sm text-slate-600">
                                         <div className="flex items-center gap-2">
                                             <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                            <span>1 {language === 'ar' ? 'قاعة' : language === 'fr' ? 'salle' : 'venue'}</span>
+                                            <span>1 {t('settings.billing.venue_count')}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -277,7 +277,7 @@ export default function BillingSettingsSection({
             {/* Payment Methods */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
                 <h3 className="text-base font-semibold text-slate-900 mb-5">
-                    {language === 'ar' ? 'طريقة الدفع' : language === 'fr' ? 'Méthode de paiement' : 'Payment method'}
+                    {t('settings.billing.payment_method')}
                 </h3>
                 <div className="grid gap-6 lg:grid-cols-2">
                     {/* Manual Payment */}

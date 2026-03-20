@@ -243,6 +243,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                         const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/notifications'].includes(item.href);
                                         let labelKey = '';
                                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
+                                        else if (item.href === '/dashboard/notifications') labelKey = 'dashboard.nav.notifications';
                                         else if (item.href === '/dashboard/venues') labelKey = 'dashboard.nav.venues';
                                         else if (item.href === '/dashboard/inquiries') labelKey = 'dashboard.nav.inquiries';
                                         else if (item.href === '/dashboard/settings') labelKey = 'dashboard.nav.settings';
@@ -378,6 +379,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                         // Map href to translation key
                         let labelKey = '';
                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
+                        else if (item.href === '/dashboard/notifications') labelKey = 'dashboard.nav.notifications';
                         else if (item.href === '/dashboard/venues') labelKey = 'dashboard.nav.venues';
                         else if (item.href === '/dashboard/inquiries') labelKey = 'dashboard.nav.inquiries';
                         else if (item.href === '/dashboard/settings') labelKey = 'dashboard.nav.settings';
@@ -387,7 +389,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                 <div
                                     key={item.name}
                                     className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium text-slate-400 cursor-not-allowed"
-                                    title="Account approval required"
+                                    title={t('dashboard.nav.approval_required')}
                                 >
                                     <Icon />
                                     {labelKey ? t(labelKey) : item.name}

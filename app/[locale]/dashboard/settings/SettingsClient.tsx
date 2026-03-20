@@ -339,7 +339,7 @@ export default function SettingsClient({ profile, subscription, plans, receipts,
                                     </div>
                                     <div>
                                         <label className="mb-1.5 block text-sm font-medium text-slate-700">{t('settings.businessdesc')}</label>
-                                        <textarea value={formData.business_description} onChange={(e) => setFormData({ ...formData, business_description: e.target.value })} placeholder={t('settings.desc_placeholder') || 'Tell us about your venue business...'} rows={4} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none" />
+                                        <textarea value={formData.business_description} onChange={(e) => setFormData({ ...formData, business_description: e.target.value })} placeholder={t('settings.desc_placeholder')} rows={4} className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none" />
                                     </div>
                                 </div>
                             </div>
