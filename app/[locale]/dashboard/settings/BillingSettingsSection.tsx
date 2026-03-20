@@ -10,6 +10,7 @@ interface Plan {
     id: string;
     name: string | null;
     name_ar?: string | null;
+    name_fr?: string | null;
     price_monthly?: number | null;
     price_yearly?: number | null;
     duration_months?: number | null;
@@ -64,9 +65,21 @@ export default function BillingSettingsSection({
     const getSetting = (keys: string[]) => settings.find((s) => keys.includes(s.key))?.value || null;
 
     const onlinePaymentUrl = useMemo(() => getSetting(['online_payment_url', 'payment_link', 'owner_payment_link']), [settings]);
+    // CCP fields
+    const ccpName = useMemo(() => getSetting(['ccp_name', 'payment_ccp_name']), [settings]);
     const ccpNumber = useMemo(() => getSetting(['ccp_number', 'payment_ccp_number']), [settings]);
+    const ccpKey = useMemo(() => getSetting(['ccp_key', 'payment_ccp_key', 'ccp_cle']), [settings]);
+    const ccpAddress = useMemo(() => getSetting(['ccp_address', 'payment_ccp_address']), [settings]);
+    // Baridimob fields
+    const baridimobName = useMemo(() => getSetting(['baridimob_name', 'payment_baridimob_name']), [settings]);
+    const baridimobNumber = useMemo(() => getSetting(['baridimob_number', 'payment_baridimob', 'payment_baridimob_number']), [settings]);
+    const baridimobInfo = baridimobName || baridimobNumber;
+    // Bank fields
+    const bankName = useMemo(() => getSetting(['bank_name', 'payment_bank_name']), [settings]);
     const bankAccount = useMemo(() => getSetting(['bank_account', 'bank_account_number']), [settings]);
-    const baridimobInfo = useMemo(() => getSetting(['payment_baridimob']), [settings]);
+    const bankAddress = useMemo(() => getSetting(['bank_address', 'payment_bank_address']), [settings]);
+    const hasCcpInfo = ccpName || ccpNumber || ccpKey || ccpAddress;
+    const hasBankInfo = bankName || bankAccount || bankAddress;
 
     const handleReceiptUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -113,9 +126,16 @@ export default function BillingSettingsSection({
     };
 
     const formatDate = (value?: string | null) => (value ? new Date(value).toLocaleDateString() : '-');
-    const getPlanName = (plan?: Plan | { id?: string; name?: string | null; name_ar?: string | null; duration_months?: number | null } | null) => {
+    const isValidName = (n?: string | null) => n && !/^\?+$/.test(n.trim());
+    const getPlanName = (plan?: Plan | { id?: string; name?: string | null; name_ar?: string | null; name_fr?: string | null; duration_months?: number | null } | null) => {
         if (!plan) return t('settings.billing.owner_pack');
-        return language === 'ar' ? plan.name_ar || plan.name || t('settings.billing.owner_pack') : plan.name || t('settings.billing.owner_pack');
+        if (language === 'ar' && isValidName(plan.name_ar)) return plan.name_ar!;
+        if (language === 'fr' && isValidName((plan as any).name_fr)) return (plan as any).name_fr!;
+        if (isValidName(plan.name)) return plan.name!;
+        // Fallback: generate name from duration
+        const months = plan.duration_months || 0;
+        if (months >= 6) return language === 'ar' ? 'الباقة المميزة' : language === 'fr' ? 'Pack Premium' : 'Premium';
+        return language === 'ar' ? 'الباقة الأساسية' : language === 'fr' ? 'Pack Starter' : 'Starter';
     };
 
     const getDurationLabel = (months?: number | null) => {
@@ -286,65 +306,149 @@ export default function BillingSettingsSection({
                             <h4 className="font-semibold text-slate-900 mb-3">{t('settings.billing.manual_payment')}</h4>
                             <p className="text-sm text-slate-600 mb-4">{t('settings.billing.manual_payment_desc')}</p>
 
-                            <div className="space-y-3">
-                                {ccpNumber && (
-                                    <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
-                                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-bold">CCP</div>
-                                        <div>
-                                            <p className="text-xs text-slate-500">{t('settings.billing.ccp')}</p>
-                                            <p className="text-sm font-mono font-semibold text-slate-900">{ccpNumber}</p>
-                                        </div>
-                                    </div>
-                                )}
-                                {baridimobInfo && (
-                                    <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
-                                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 text-xs font-bold">BM</div>
-                                        <div>
-                                            <p className="text-xs text-slate-500">{t('settings.billing.baridimob')}</p>
-                                            <p className="text-sm font-mono font-semibold text-slate-900">{baridimobInfo}</p>
-                                        </div>
-                                    </div>
-                                )}
-                                {bankAccount && (
-                                    <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
-                                        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold">
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l9-4 9 4M3 6v14l9 4 9-4V6M3 6l9 4m0 0l9-4m-9 4v14" /></svg>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-slate-500">{t('settings.billing.bank')}</p>
-                                            <p className="text-sm font-mono font-semibold text-slate-900">{bankAccount}</p>
-                                        </div>
-                                    </div>
-                                )}
-                                {!ccpNumber && !baridimobInfo && !bankAccount && (
-                                    <p className="text-sm text-amber-600">{t('settings.billing.ask_admin_ccp')}</p>
-                                )}
+                            {/* Payment method selector */}
+                            <div className="mb-4">
+                                <label className="mb-2 block text-sm font-medium text-slate-700">{t('settings.billing.payment_method')}</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {[
+                                        { value: 'ccp' as const, label: 'CCP' },
+                                        { value: 'baridimob' as const, label: 'Baridimob' },
+                                        { value: 'bank_transfer' as const, label: t('settings.billing.bank') },
+                                    ].map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            onClick={() => setPaymentMethod(opt.value)}
+                                            className={`rounded-xl border py-2.5 text-sm font-medium transition-all ${
+                                                paymentMethod === opt.value
+                                                    ? 'border-primary-500 bg-primary-50 text-primary-700'
+                                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                            }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Payment method selector */}
-                        <div>
-                            <label className="mb-2 block text-sm font-medium text-slate-700">{t('settings.billing.payment_method')}</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {[
-                                    { value: 'ccp' as const, label: 'CCP' },
-                                    { value: 'baridimob' as const, label: 'Baridimob' },
-                                    { value: 'bank_transfer' as const, label: t('settings.billing.bank') },
-                                ].map((opt) => (
-                                    <button
-                                        key={opt.value}
-                                        type="button"
-                                        onClick={() => setPaymentMethod(opt.value)}
-                                        className={`rounded-xl border py-2.5 text-sm font-medium transition-all ${
-                                            paymentMethod === opt.value
-                                                ? 'border-primary-500 bg-primary-50 text-primary-700'
-                                                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                                        }`}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
+                            {/* CCP credentials */}
+                            {paymentMethod === 'ccp' && (
+                                <div className="space-y-2">
+                                    {hasCcpInfo ? (
+                                        <div className="space-y-2">
+                                            {ccpName && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-bold shrink-0">👤</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.ccp_name')}</p>
+                                                        <p className="text-sm font-semibold text-slate-900">{ccpName}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {ccpNumber && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-bold shrink-0">CCP</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.ccp_number')}</p>
+                                                        <p className="text-sm font-mono font-semibold text-slate-900">{ccpNumber}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {ccpKey && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-bold shrink-0">🔑</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.ccp_key')}</p>
+                                                        <p className="text-sm font-mono font-semibold text-slate-900">{ccpKey}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {ccpAddress && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-100 text-yellow-700 text-xs font-bold shrink-0">📍</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.ccp_address')}</p>
+                                                        <p className="text-sm font-semibold text-slate-900">{ccpAddress}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-amber-600">{t('settings.billing.ask_admin_ccp')}</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Baridimob credentials */}
+                            {paymentMethod === 'baridimob' && (
+                                <div className="space-y-2">
+                                    {baridimobInfo ? (
+                                        <div className="space-y-2">
+                                            {baridimobName && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 text-xs font-bold shrink-0">👤</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.baridimob_name')}</p>
+                                                        <p className="text-sm font-semibold text-slate-900">{baridimobName}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {baridimobNumber && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-700 text-xs font-bold shrink-0">BM</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.baridimob_number')}</p>
+                                                        <p className="text-sm font-mono font-semibold text-slate-900">{baridimobNumber}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-amber-600">{t('settings.billing.ask_admin_baridimob')}</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Bank credentials */}
+                            {paymentMethod === 'bank_transfer' && (
+                                <div className="space-y-2">
+                                    {hasBankInfo ? (
+                                        <div className="space-y-2">
+                                            {bankName && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 shrink-0">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l9-4 9 4M3 6v14l9 4 9-4V6M3 6l9 4m0 0l9-4m-9 4v14" /></svg>
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.bank_name')}</p>
+                                                        <p className="text-sm font-semibold text-slate-900">{bankName}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {bankAccount && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold shrink-0">#</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.bank')}</p>
+                                                        <p className="text-sm font-mono font-semibold text-slate-900">{bankAccount}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {bankAddress && (
+                                                <div className="flex items-center gap-3 rounded-lg bg-white p-3 border border-slate-200">
+                                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-700 text-xs font-bold shrink-0">📍</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs text-slate-500">{t('settings.billing.bank_address')}</p>
+                                                        <p className="text-sm font-semibold text-slate-900">{bankAddress}</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-sm text-amber-600">{t('settings.billing.ask_admin_bank')}</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Upload receipt */}
