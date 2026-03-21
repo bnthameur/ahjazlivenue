@@ -94,6 +94,12 @@ export default async function AdminVenueDetailPage({ params }: PageProps) {
         ? mediaRows.filter(m => m.media_type === 'image').map(m => m.url)
         : (venue.images || []);
 
+    const galleryVideos: { url: string; thumbnail_url: string | null }[] = mediaRows
+        ? mediaRows
+            .filter(m => m.media_type === 'video')
+            .map(m => ({ url: m.url, thumbnail_url: m.thumbnail_url || null }))
+        : [];
+
     return (
         <div className="p-4 sm:p-6 max-w-5xl">
             {/* Back + Header */}
@@ -171,6 +177,42 @@ export default async function AdminVenueDetailPage({ params }: PageProps) {
                 </section>
             )}
 
+            {/* Video Gallery */}
+            {galleryVideos.length > 0 && (
+                <section className="mb-6">
+                    <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">Videos</h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                        {galleryVideos.map((video, idx) => (
+                            <a
+                                key={idx}
+                                href={video.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative block overflow-hidden rounded-xl bg-slate-900 group aspect-video"
+                            >
+                                {video.thumbnail_url ? (
+                                    <img
+                                        src={video.thumbnail_url}
+                                        alt={`Video ${idx + 1}`}
+                                        className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-slate-800" />
+                                )}
+                                {/* Play icon overlay */}
+                                <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <span className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
+                                        <svg className="w-5 h-5 text-slate-800 translate-x-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                    </span>
+                                </span>
+                            </a>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left column: Venue details */}
                 <div className="lg:col-span-2 space-y-6">
@@ -191,11 +233,23 @@ export default async function AdminVenueDetailPage({ params }: PageProps) {
                             </div>
                             <div>
                                 <p className="text-xs text-slate-500 mb-1">Price</p>
-                                <p className="font-medium text-slate-900">{venue.price ? `${venue.price.toLocaleString()} DZD` : 'Contact for price'}</p>
+                                <p className="font-medium text-slate-900">
+                                    {(venue.price_min != null || venue.price_max != null)
+                                        ? `${venue.price_min != null ? venue.price_min.toLocaleString() : '?'} – ${venue.price_max != null ? venue.price_max.toLocaleString() : '?'} DZD`
+                                        : venue.price
+                                            ? `${venue.price.toLocaleString()} DZD`
+                                            : 'Contact for price'}
+                                </p>
                             </div>
                             <div>
                                 <p className="text-xs text-slate-500 mb-1">Capacity</p>
-                                <p className="font-medium text-slate-900">{venue.capacity ? `${venue.capacity} guests` : '—'}</p>
+                                <p className="font-medium text-slate-900">
+                                    {(venue.capacity_min != null || venue.capacity_max != null)
+                                        ? `${venue.capacity_min != null ? venue.capacity_min : '?'} – ${venue.capacity_max != null ? venue.capacity_max : '?'} guests`
+                                        : venue.capacity
+                                            ? `${venue.capacity} guests`
+                                            : '—'}
+                                </p>
                             </div>
                             {venue.phone && (
                                 <div>
@@ -203,12 +257,59 @@ export default async function AdminVenueDetailPage({ params }: PageProps) {
                                     <p className="font-medium text-slate-900">{venue.phone}</p>
                                 </div>
                             )}
-                            {venue.email || venue.contact_email ? (
+                            {(venue.email || venue.contact_email) && (
                                 <div>
                                     <p className="text-xs text-slate-500 mb-1">Email</p>
                                     <p className="font-medium text-slate-900">{venue.email || venue.contact_email}</p>
                                 </div>
-                            ) : null}
+                            )}
+                            {venue.whatsapp && (
+                                <div>
+                                    <p className="text-xs text-slate-500 mb-1">WhatsApp</p>
+                                    <p className="font-medium text-slate-900">{venue.whatsapp}</p>
+                                </div>
+                            )}
+                            {venue.address && (
+                                <div className="col-span-full">
+                                    <p className="text-xs text-slate-500 mb-1">Address</p>
+                                    <p className="font-medium text-slate-900">{venue.address}</p>
+                                </div>
+                            )}
+                            {(venue.latitude != null && venue.longitude != null) && (
+                                <div className="col-span-full">
+                                    <p className="text-xs text-slate-500 mb-1">Coordinates</p>
+                                    <p className="font-medium text-slate-900 font-mono text-sm">
+                                        {venue.latitude}, {venue.longitude}
+                                    </p>
+                                </div>
+                            )}
+                            {(venue.facebook_url || venue.instagram_url) && (
+                                <div className="col-span-full">
+                                    <p className="text-xs text-slate-500 mb-2">Social Links</p>
+                                    <div className="flex flex-wrap gap-3">
+                                        {venue.facebook_url && (
+                                            <a
+                                                href={venue.facebook_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-blue-600 hover:underline"
+                                            >
+                                                Facebook
+                                            </a>
+                                        )}
+                                        {venue.instagram_url && (
+                                            <a
+                                                href={venue.instagram_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-pink-600 hover:underline"
+                                            >
+                                                Instagram
+                                            </a>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             {venue.slug && (
                                 <div className="col-span-full">
                                     <p className="text-xs text-slate-500 mb-1">Slug</p>

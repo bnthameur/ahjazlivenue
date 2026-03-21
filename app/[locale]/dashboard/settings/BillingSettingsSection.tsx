@@ -72,7 +72,7 @@ export default function BillingSettingsSection({
     const ccpAddress = useMemo(() => getSetting(['ccp_address', 'payment_ccp_address']), [settings]);
     // Baridimob fields
     const baridimobName = useMemo(() => getSetting(['baridimob_name', 'payment_baridimob_name']), [settings]);
-    const baridimobNumber = useMemo(() => getSetting(['baridimob_number', 'payment_baridimob', 'payment_baridimob_number']), [settings]);
+    const baridimobNumber = useMemo(() => getSetting(['baridimob_rip', 'baridimob_number', 'payment_baridimob', 'payment_baridimob_number']), [settings]);
     const baridimobInfo = baridimobName || baridimobNumber;
     // Bank fields
     const bankName = useMemo(() => getSetting(['bank_name', 'payment_bank_name']), [settings]);

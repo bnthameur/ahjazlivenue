@@ -67,18 +67,18 @@ const getCategories = (t: (key: string) => string) => [
 
 
 const getAmenities = (t: (key: string) => string) => [
-    { id: 'parking', name: t('NewVenue.amenities.parking'), icon: Car },
-    { id: 'air_conditioning', name: t('NewVenue.amenities.air_conditioning'), icon: Wind },
-    { id: 'sound_system', name: t('NewVenue.amenities.sound_system'), icon: Speaker },
-    { id: 'lighting', name: t('NewVenue.amenities.lighting'), icon: Lightbulb },
-    { id: 'catering', name: t('NewVenue.amenities.catering'), icon: ChefHat },
-    { id: 'wifi', name: t('NewVenue.amenities.wifi'), icon: Wifi },
-    { id: 'wheelchair_access', name: t('NewVenue.amenities.wheelchair_access'), icon: Accessibility },
-    { id: 'dance_floor', name: t('NewVenue.amenities.dance_floor'), icon: Music },
-    { id: 'garden', name: t('NewVenue.amenities.garden'), icon: Flower2 },
-    { id: 'pool', name: t('NewVenue.amenities.pool'), icon: Waves },
-    { id: 'terrace', name: t('NewVenue.amenities.terrace'), icon: Sun },
-    { id: 'stage', name: t('NewVenue.amenities.stage'), icon: Star },
+    { id: 'Parking', name: t('NewVenue.amenities.parking'), icon: Car },
+    { id: 'Air Conditioning', name: t('NewVenue.amenities.air_conditioning'), icon: Wind },
+    { id: 'Sound System', name: t('NewVenue.amenities.sound_system'), icon: Speaker },
+    { id: 'Lighting', name: t('NewVenue.amenities.lighting'), icon: Lightbulb },
+    { id: 'Catering', name: t('NewVenue.amenities.catering'), icon: ChefHat },
+    { id: 'Wi-Fi', name: t('NewVenue.amenities.wifi'), icon: Wifi },
+    { id: 'Wheelchair Access', name: t('NewVenue.amenities.wheelchair_access'), icon: Accessibility },
+    { id: 'Dance Floor', name: t('NewVenue.amenities.dance_floor'), icon: Music },
+    { id: 'Garden', name: t('NewVenue.amenities.garden'), icon: Flower2 },
+    { id: 'Pool', name: t('NewVenue.amenities.pool'), icon: Waves },
+    { id: 'Terrace', name: t('NewVenue.amenities.terrace'), icon: Sun },
+    { id: 'Stage', name: t('NewVenue.amenities.stage'), icon: Star },
 ];
 
 type CityOption = {
