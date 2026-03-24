@@ -45,7 +45,7 @@ export default async function SettingsPage() {
     const [{ data: plans }, { data: receipts }, { data: settingsRows }, { count: venuesCount }] = await Promise.all([
         supabase
             .from('subscription_plans')
-            .select('id, name, name_ar, price_monthly, price_yearly, duration_months, max_venues, max_images_per_venue, max_videos_per_venue')
+            .select('id, name, name_ar, name_fr, price_monthly, price_yearly, duration_months, max_venues, max_images_per_venue, max_videos_per_venue')
             .order('price_monthly', { ascending: true }),
         supabase
             .from('payment_receipts')

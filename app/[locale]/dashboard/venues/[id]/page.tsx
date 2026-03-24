@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter, Link } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
@@ -224,6 +224,12 @@ export default function EditVenuePage() {
     const [videos, setVideos] = useState<VenueMediaRecord[]>([]);
     const [hasChanges, setHasChanges] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3500);
+    };
     
     const [formData, setFormData] = useState({
         name: '',
@@ -330,7 +336,7 @@ export default function EditVenuePage() {
         if (!file.type.startsWith('video/')) return;
 
         if (videos.length >= planLimits.maxVideos) {
-            alert(`Your plan allows up to ${planLimits.maxVideos} videos per venue. Upgrade your plan to add more.`);
+            showToast(`${te('videos_title')}: ${planLimits.maxVideos} max`, 'error');
             e.target.value = '';
             return;
         }
@@ -343,7 +349,7 @@ export default function EditVenuePage() {
             });
             setVideos(prev => [...prev, result.mediaRecord]);
         } catch (error: any) {
-            alert(`Error uploading video: ${error.message}`);
+            showToast(error.message, 'error');
         } finally {
             setVideoUploading(false);
             setVideoUploadProgress(null);
@@ -361,7 +367,7 @@ export default function EditVenuePage() {
             await deleteVenueVideo(mediaRecord.id, storagePath);
             setVideos(prev => prev.filter(v => v.id !== mediaRecord.id));
         } catch (error: any) {
-            alert(`Error deleting video: ${error.message}`);
+            showToast(error.message, 'error');
         }
     };
 
@@ -388,13 +394,13 @@ export default function EditVenuePage() {
 
         const remaining = planLimits.maxImages - formData.images.length;
         if (remaining <= 0) {
-            alert(`Your plan allows up to ${planLimits.maxImages} images per venue. Upgrade your plan to add more.`);
+            showToast(`${te('photos_title')}: ${planLimits.maxImages} max`, 'error');
             e.target.value = '';
             return;
         }
         const filesToUpload = files.slice(0, remaining);
         if (filesToUpload.length < files.length) {
-            alert(`Only uploading ${filesToUpload.length} of ${files.length} images (plan limit: ${planLimits.maxImages}).`);
+            showToast(`${filesToUpload.length}/${files.length} — ${planLimits.maxImages} max`, 'error');
         }
 
         setUploading(true);
@@ -406,7 +412,7 @@ export default function EditVenuePage() {
             }));
             setHasChanges(true);
         } catch (error: any) {
-            alert(`Error uploading: ${error.message}`);
+            showToast(error.message, 'error');
         } finally {
             setUploading(false);
         }
@@ -447,9 +453,9 @@ export default function EditVenuePage() {
 
             if (error) throw error;
             setHasChanges(false);
-            // Show success toast or notification here
+            showToast(te('save') + ' ✓', 'success');
         } catch (error: any) {
-            alert(`Error saving: ${error.message}`);
+            showToast(error.message, 'error');
         } finally {
             setSaving(false);
         }
@@ -473,12 +479,13 @@ export default function EditVenuePage() {
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 mb-2">{te('sub_required_title')}</h2>
                     <p className="text-sm text-slate-600 mb-6">{te('sub_required_desc')}</p>
-                    <button
-                        onClick={() => router.push(`/${locale}/dashboard/settings`)}
-                        className="px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
+                    <Link
+                        href="/dashboard/settings"
+                        prefetch={true}
+                        className="inline-block px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
                     >
                         {te('go_to_settings')}
-                    </button>
+                    </Link>
                 </div>
             </div>
         );
@@ -978,17 +985,34 @@ export default function EditVenuePage() {
 
     return (
         <div className="min-h-screen bg-slate-50/50">
+            {/* Toast */}
+            <AnimatePresence>
+                {toast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -40 }}
+                        className={`fixed top-4 right-4 z-[100] px-5 py-3 rounded-xl shadow-lg text-sm font-medium ${
+                            toast.type === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
+                        }`}
+                    >
+                        {toast.message}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Header */}
             <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => router.push(`/${locale}/dashboard/venues`)}
-                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"
+                            <Link
+                                href="/dashboard/venues"
+                                prefetch={true}
+                                className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 inline-flex items-center"
                             >
                                 <ArrowLeft className="w-5 h-5" />
-                            </button>
+                            </Link>
                             <div>
                                 <h1 className="font-semibold text-slate-900">{te('page_title')}</h1>
                                 <p className="text-sm text-slate-500">{formData.name || 'Loading...'}</p>

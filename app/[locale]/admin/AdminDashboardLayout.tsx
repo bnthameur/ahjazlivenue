@@ -79,6 +79,7 @@ const navigation = [
     { name: 'Dashboard', href: '/admin', icon: HomeIcon, labelKey: 'admin.nav.dashboard' },
     { name: 'Venues', href: '/admin/venues', icon: VenuesIcon, labelKey: 'admin.nav.venues' },
     { name: 'Users', href: '/admin/users', icon: UsersIcon, labelKey: 'admin.nav.users' },
+    { name: 'Notifications', href: '/admin/notifications', icon: NotificationsIcon, labelKey: 'admin.nav.notifications' },
     { name: 'Payments', href: '/admin/payments', icon: PaymentsIcon, labelKey: 'admin.nav.payments' },
     { name: 'Inquiries', href: '/admin/inquiries', icon: InquiriesIcon, labelKey: 'admin.nav.inquiries' },
     { name: 'Plans', href: '/admin/plans', icon: PlansIcon, labelKey: 'admin.nav.plans' },
@@ -211,7 +212,7 @@ export default function AdminDashboardLayout({ user, profile, children }: AdminD
                         >
                             {/* Logo */}
                             <div className="h-16 flex items-center px-4 border-b border-slate-100 justify-between">
-                                <Link href="/" className="flex items-center gap-2">
+                                <Link href="/" prefetch={true} className="flex items-center gap-2">
                                     <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                                         <Emoji name="shield" width={20} />
                                     </div>
@@ -235,6 +236,7 @@ export default function AdminDashboardLayout({ user, profile, children }: AdminD
                                             <Link
                                                 key={item.name}
                                                 href={item.href}
+                                                prefetch={true}
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                                 className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
                                                     ? 'bg-purple-50 text-purple-700'
@@ -288,7 +290,7 @@ export default function AdminDashboardLayout({ user, profile, children }: AdminD
             <aside className={`w-56 bg-white border-r border-slate-200 hidden md:flex flex-col fixed h-screen ${dir === 'rtl' ? 'border-l border-r-0 right-0' : 'left-0'}`}>
                 {/* Logo */}
                 <div className="h-12 flex items-center px-3 border-b border-slate-100">
-                    <Link href="/" className="flex items-center gap-2">
+                    <Link href="/" prefetch={true} className="flex items-center gap-2">
                         <div className="w-7 h-7 bg-purple-600 rounded-lg flex items-center justify-center">
                             <Emoji name="shield" width={16} />
                         </div>
@@ -306,6 +308,7 @@ export default function AdminDashboardLayout({ user, profile, children }: AdminD
                             <Link
                                 key={item.name}
                                 href={item.href}
+                                prefetch={true}
                                 className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-colors ${isActive
                                     ? 'bg-purple-50 text-purple-700'
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'

@@ -70,7 +70,7 @@ export default function AdminLayout({ user, profile, children }: AdminLayoutProp
             <aside className="w-56 bg-slate-800 border-r border-slate-700 flex flex-col fixed h-screen">
                 {/* Logo */}
                 <div className="h-12 flex items-center px-3 border-b border-slate-700">
-                    <Link href="/admin" className="flex items-center gap-2">
+                    <Link href="/admin" prefetch={true} className="flex items-center gap-2">
                         <div className="w-7 h-7 bg-red-600 rounded-lg flex items-center justify-center">
                             <span className="text-white text-sm">⚡</span>
                         </div>
@@ -87,6 +87,7 @@ export default function AdminLayout({ user, profile, children }: AdminLayoutProp
                             <Link
                                 key={item.name}
                                 href={item.href}
+                                prefetch={true}
                                 className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-colors ${isActive
                                     ? 'bg-slate-700 text-white'
                                     : 'text-slate-400 hover:bg-slate-700/50 hover:text-white'
@@ -103,6 +104,7 @@ export default function AdminLayout({ user, profile, children }: AdminLayoutProp
                 <div className="p-3 border-t border-slate-700">
                     <Link
                         href="/"
+                        prefetch={true}
                         className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium rounded transition-colors"
                     >
                         ← Back to Main Site

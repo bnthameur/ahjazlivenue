@@ -205,7 +205,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                         >
                             {/* Logo */}
                             <div className="h-16 flex items-center px-4 border-b border-slate-100 justify-between">
-                                <Link href="/" className="flex items-center gap-2">
+                                <Link href="/" prefetch={true} className="flex items-center gap-2">
                                     <Image src="/logo.png" alt="Ahjazli Qaati" width={140} height={44} className="h-12 w-auto object-contain" unoptimized />
                                 </Link>
                                 <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-slate-400 hover:text-slate-600">
@@ -254,6 +254,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                             <Link
                                                 key={item.name}
                                                 href={item.href}
+                                                prefetch={true}
                                                 onClick={() => setIsMobileMenuOpen(false)}
                                                 className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
                                                     ? 'bg-primary-50 text-primary-700'
@@ -332,7 +333,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
             <aside className={`w-56 bg-white border-r border-slate-200 hidden md:flex flex-col fixed h-screen ${dir === 'rtl' ? 'border-l border-r-0 right-0' : 'left-0'}`}>
                 {/* Logo */}
                 <div className="h-12 flex items-center px-3 border-b border-slate-100">
-                    <Link href="/" className="flex items-center gap-2">
+                    <Link href="/" prefetch={true} className="flex items-center gap-2">
                         <Image src="/logo.png" alt="Ahjazli Qaati" width={120} height={38} className="h-10 w-auto object-contain" unoptimized />
                     </Link>
                 </div>
@@ -402,6 +403,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                             <Link
                                 key={item.name}
                                 href={item.href}
+                                prefetch={true}
                                 className={`flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-colors ${isActive
                                     ? 'bg-primary-50 text-primary-700'
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
@@ -429,6 +431,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                     <div className="p-3 border-t border-slate-100">
                         <Link
                             href="/dashboard/venues/new"
+                            prefetch={true}
                             className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded transition-colors"
                         >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -522,6 +525,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                     </div>
                                     <Link
                                         href="/dashboard/settings"
+                                        prefetch={true}
                                         className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-slate-700"
                                     >
                                         {t('dashboard.nav.settings')}

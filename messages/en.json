@@ -388,6 +388,7 @@
             "dashboard": "Dashboard",
             "venues": "Venues",
             "users": "Users",
+            "notifications": "Notifications",
             "payments": "Payments",
             "inquiries": "Inquiries",
             "plans": "Plans",
@@ -419,7 +420,24 @@
             "venue_approved_message": "Your venue has been approved and is now live on the marketplace.",
             "venue_rejected_title": "Venue Rejected",
             "venue_rejected_message": "Your venue has been rejected. Please review the guidelines and try again.",
-            "venue_rejected_message_with_reason": "Your venue has been rejected. Reason: {reason}"
+            "venue_rejected_message_with_reason": "Your venue has been rejected. Reason: {reason}",
+            "modal_title_single": "Send Notification",
+            "modal_title_bulk": "Send Bulk Notification",
+            "modal_bulk_count": "Sending to {count} users",
+            "field_title": "Title",
+            "field_title_placeholder": "e.g. Important update",
+            "field_message": "Message",
+            "field_message_placeholder": "Write your notification message here...",
+            "btn_send": "Send",
+            "btn_send_single": "Notify",
+            "btn_send_all": "Notify All ({count})",
+            "btn_sending": "Sending...",
+            "btn_cancel": "Cancel",
+            "toast_sent": "Notification sent to {count} user(s)",
+            "error_title_required": "Please enter a title",
+            "error_message_required": "Please enter a message",
+            "error_no_recipients": "No recipients found",
+            "error_send_failed": "Failed to send notification. Please try again."
         },
         "status": {
             "pending": "Pending",
@@ -438,22 +456,36 @@
             "contact_price": "Contact for price",
             "rejection_reason": "Rejection Reason",
             "approve": "Approve",
+            "approve_success": "Venue approved successfully",
             "reject": "Reject",
+            "reject_success": "Venue rejected",
+            "delete": "Delete",
+            "delete_success": "Venue \"{venue}\" deleted successfully",
+            "delete_error": "Failed to delete venue. Please try again.",
             "view": "View",
             "reject_modal": {
                 "title": "Reject Venue",
-                "description": "Please provide a reason for rejecting \"{{venue}}\"",
+                "description": "Please provide a reason for rejecting \"{venue}\"",
                 "placeholder": "Enter rejection reason (e.g., missing information, doesn't meet guidelines, etc.)",
                 "cancel": "Cancel",
                 "confirm": "Reject Venue",
                 "submitting": "Rejecting..."
+            },
+            "delete_modal": {
+                "title": "Delete Venue",
+                "description": "Are you sure you want to delete \"{venue}\"? This action cannot be undone.",
+                "cancel": "Cancel",
+                "confirm": "Delete",
+                "deleting": "Deleting..."
             }
         },
         "users": {
             "title": "Users Management",
             "no_users": "No {{status}} users found.",
             "approve": "Approve",
+            "approve_success": "User approved successfully",
             "reject": "Reject",
+            "reject_success": "User rejected",
             "view": "View Profile"
         },
         "inquiries": {

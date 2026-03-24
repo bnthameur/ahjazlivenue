@@ -388,6 +388,7 @@
             "dashboard": "Tableau de Bord",
             "venues": "Salles",
             "users": "Utilisateurs",
+            "notifications": "Notifications",
             "payments": "Paiements",
             "inquiries": "Demandes",
             "plans": "Forfaits",
@@ -419,7 +420,24 @@
             "venue_approved_message": "Votre salle a été approuvée et est maintenant visible sur la marketplace.",
             "venue_rejected_title": "Salle rejetée",
             "venue_rejected_message": "Votre salle a été rejetée. Vérifiez les consignes puis réessayez.",
-            "venue_rejected_message_with_reason": "Votre salle a été rejetée. Raison : {reason}"
+            "venue_rejected_message_with_reason": "Votre salle a été rejetée. Raison : {reason}",
+            "modal_title_single": "Envoyer une notification",
+            "modal_title_bulk": "Envoyer une notification groupée",
+            "modal_bulk_count": "Envoi à {count} utilisateur(s)",
+            "field_title": "Titre",
+            "field_title_placeholder": "ex. Mise à jour importante",
+            "field_message": "Message",
+            "field_message_placeholder": "Rédigez votre notification ici...",
+            "btn_send": "Envoyer",
+            "btn_send_single": "Notifier",
+            "btn_send_all": "Notifier tous ({count})",
+            "btn_sending": "Envoi...",
+            "btn_cancel": "Annuler",
+            "toast_sent": "Notification envoyée à {count} utilisateur(s)",
+            "error_title_required": "Veuillez saisir un titre",
+            "error_message_required": "Veuillez saisir un message",
+            "error_no_recipients": "Aucun destinataire trouvé",
+            "error_send_failed": "Échec de l'envoi. Veuillez réessayer."
         },
         "status": {
             "pending": "En Attente",
@@ -438,22 +456,36 @@
             "contact_price": "Contactez pour le prix",
             "rejection_reason": "Raison du Rejet",
             "approve": "Approuver",
+            "approve_success": "Salle approuvée avec succès",
             "reject": "Rejeter",
+            "reject_success": "Salle rejetée",
+            "delete": "Supprimer",
+            "delete_success": "Salle \"{venue}\" supprimée avec succès",
+            "delete_error": "Échec de la suppression. Veuillez réessayer.",
             "view": "Voir",
             "reject_modal": {
                 "title": "Rejeter la Salle",
-                "description": "Veuillez fournir une raison pour rejeter \"{{venue}}\"",
+                "description": "Veuillez fournir une raison pour rejeter \"{venue}\"",
                 "placeholder": "Entrez la raison du rejet (ex: informations manquantes, ne respecte pas les directives, etc.)",
                 "cancel": "Annuler",
                 "confirm": "Rejeter la Salle",
                 "submitting": "Rejet en cours..."
+            },
+            "delete_modal": {
+                "title": "Supprimer la Salle",
+                "description": "Êtes-vous sûr de vouloir supprimer \"{venue}\" ? Cette action est irréversible.",
+                "cancel": "Annuler",
+                "confirm": "Supprimer",
+                "deleting": "Suppression..."
             }
         },
         "users": {
             "title": "Gestion des Utilisateurs",
             "no_users": "Aucun utilisateur {{status}} trouvé.",
             "approve": "Approuver",
+            "approve_success": "Utilisateur approuvé avec succès",
             "reject": "Rejeter",
+            "reject_success": "Utilisateur rejeté",
             "view": "Voir le Profil"
         },
         "inquiries": {

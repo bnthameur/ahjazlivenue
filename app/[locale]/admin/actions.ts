@@ -278,6 +278,31 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
     }
 }
 
+export async function deleteVenue(formData: FormData): Promise<{ success?: boolean; error?: string }> {
+    const venueId = formData.get('venueId') as string;
+    if (!venueId) return { error: 'Venue ID is required' };
+
+    const admin = await getAdminClient();
+    if (!admin) return { error: 'Unauthorized' };
+    const { supabase } = admin;
+
+    try {
+        // Delete related data first to avoid FK constraint errors
+        await supabase.from('inquiries').delete().eq('venue_id', venueId);
+        await supabase.from('contact_inquiries').delete().eq('venue_id', venueId);
+        await supabase.from('notifications').delete().eq('venue_id', venueId);
+
+        const { error } = await supabase.from('venues').delete().eq('id', venueId);
+        if (error) throw error;
+
+        revalidatePath('/admin/venues');
+        return { success: true };
+    } catch (error: unknown) {
+        console.error('Error deleting venue:', error);
+        return { error: error instanceof Error ? error.message : 'Failed to delete venue' };
+    }
+}
+
 export async function toggleVenueFeatured(formData: FormData) {
     const venueId = formData.get('venueId') as string;
     const isFeatured = formData.get('isFeatured') === 'true';

@@ -388,6 +388,7 @@
             "dashboard": "لوحة التحكم",
             "venues": "القاعات",
             "users": "المستخدمين",
+            "notifications": "الإشعارات",
             "payments": "المدفوعات",
             "inquiries": "الطلبات",
             "plans": "الخطط",
@@ -419,7 +420,24 @@
             "venue_approved_message": "تمت الموافقة على قاعتك وأصبحت الآن ظاهرة على المنصة.",
             "venue_rejected_title": "تم رفض القاعة",
             "venue_rejected_message": "تم رفض قاعتك. يرجى مراجعة الإرشادات ثم المحاولة مرة أخرى.",
-            "venue_rejected_message_with_reason": "تم رفض قاعتك. السبب: {reason}"
+            "venue_rejected_message_with_reason": "تم رفض قاعتك. السبب: {reason}",
+            "modal_title_single": "إرسال إشعار",
+            "modal_title_bulk": "إرسال إشعار جماعي",
+            "modal_bulk_count": "إرسال إلى {count} مستخدم",
+            "field_title": "العنوان",
+            "field_title_placeholder": "مثال: تحديث مهم",
+            "field_message": "الرسالة",
+            "field_message_placeholder": "اكتب نص الإشعار هنا...",
+            "btn_send": "إرسال",
+            "btn_send_single": "إشعار",
+            "btn_send_all": "إشعار للكل ({count})",
+            "btn_sending": "جاري الإرسال...",
+            "btn_cancel": "إلغاء",
+            "toast_sent": "تم إرسال الإشعار إلى {count} مستخدم",
+            "error_title_required": "يرجى إدخال عنوان",
+            "error_message_required": "يرجى إدخال رسالة",
+            "error_no_recipients": "لم يتم العثور على مستلمين",
+            "error_send_failed": "فشل إرسال الإشعار. يرجى المحاولة مرة أخرى."
         },
         "status": {
             "pending": "قيد الانتظار",
@@ -438,22 +456,36 @@
             "contact_price": "اتصل للسعر",
             "rejection_reason": "سبب الرفض",
             "approve": "موافقة",
+            "approve_success": "تمت الموافقة على القاعة بنجاح",
             "reject": "رفض",
+            "reject_success": "تم رفض القاعة",
+            "delete": "حذف",
+            "delete_success": "تم حذف القاعة \"{venue}\" بنجاح",
+            "delete_error": "فشل حذف القاعة. يرجى المحاولة مرة أخرى.",
             "view": "عرض",
             "reject_modal": {
                 "title": "رفض القاعة",
-                "description": "يرجى تقديم سبب لرفض \"{{venue}}\"",
+                "description": "يرجى تقديم سبب لرفض \"{venue}\"",
                 "placeholder": "أدخل سبب الرفض (مثل: معلومات ناقصة، لا يتوافق مع الإرشادات، إلخ)",
                 "cancel": "إلغاء",
                 "confirm": "رفض القاعة",
                 "submitting": "جاري الرفض..."
+            },
+            "delete_modal": {
+                "title": "حذف القاعة",
+                "description": "هل أنت متأكد أنك تريد حذف \"{venue}\"؟ هذا الإجراء لا يمكن التراجع عنه.",
+                "cancel": "إلغاء",
+                "confirm": "حذف",
+                "deleting": "جاري الحذف..."
             }
         },
         "users": {
             "title": "إدارة المستخدمين",
             "no_users": "لم يتم العثور على مستخدمين {{status}}.",
             "approve": "موافقة",
+            "approve_success": "تمت الموافقة على المستخدم بنجاح",
             "reject": "رفض",
+            "reject_success": "تم رفض المستخدم",
             "view": "عرض الملف الشخصي"
         },
         "inquiries": {

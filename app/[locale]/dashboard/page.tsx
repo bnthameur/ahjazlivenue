@@ -86,10 +86,20 @@ export default function DashboardPage() {
                     .eq('owner_id', user.id)
                     .eq('status', 'pending');
 
-                // Fetch Inquiries Count
-                const { count: inquiriesCount } = await supabase
-                    .from('inquiries')
-                    .select('*', { count: 'exact', head: true });
+                // Fetch Inquiries Count - only for this owner's venues
+                const { data: ownerVenueIds } = await supabase
+                    .from('venues')
+                    .select('id')
+                    .eq('owner_id', user.id);
+
+                const venueIds = (ownerVenueIds ?? []).map((v: { id: string }) => v.id);
+
+                const { count: inquiriesCount } = venueIds.length > 0
+                    ? await supabase
+                        .from('inquiries')
+                        .select('*', { count: 'exact', head: true })
+                        .in('venue_id', venueIds)
+                    : { count: 0 };
 
                 setStats({
                     venuesCount: totalVenues || 0,
@@ -189,7 +199,7 @@ export default function DashboardPage() {
                                     href="mailto:support@ahjazliqaati.dz"
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
                                 >
-                                    Contact Support
+                                    {t('actions.settings_title')}
                                 </a>
                             </div>
                         </div>
@@ -230,7 +240,7 @@ export default function DashboardPage() {
                                         href="/dashboard/settings"
                                         className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
                                     >
-                                        Review Settings
+                                        {t('actions.settings_title')}
                                     </Link>
                                 </div>
                             </div>

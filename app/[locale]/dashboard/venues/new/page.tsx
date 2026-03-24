@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter, Link } from '@/i18n/navigation';
 import { uploadVenueImages, uploadVenueVideo, VideoUploadProgress } from '@/lib/supabase/storage';
 import { validateVideo } from '@/lib/media-optimizer';
 import { formatBytes } from '@/lib/media-optimizer';
@@ -1357,12 +1357,13 @@ export default function NewVenuePage() {
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 mb-2">{t('NewVenue.subscription_required_title')}</h2>
                     <p className="text-sm text-slate-600 mb-6">{t('NewVenue.subscription_required_desc')}</p>
-                    <button
-                        onClick={() => router.push(`/${locale}/dashboard/settings`)}
-                        className="w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
+                    <Link
+                        href="/dashboard/settings"
+                        prefetch={true}
+                        className="block w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors text-center"
                     >
                         {t('NewVenue.go_to_settings')}
-                    </button>
+                    </Link>
                 </div>
             </div>
         );
@@ -1378,12 +1379,13 @@ export default function NewVenuePage() {
                     </div>
                     <h2 className="text-xl font-bold text-slate-900 mb-2">{t('NewVenue.venue_limit_title')}</h2>
                     <p className="text-sm text-slate-600 mb-6">{t('NewVenue.venue_limit_desc')}</p>
-                    <button
-                        onClick={() => router.push(`/${locale}/dashboard/venues`)}
-                        className="w-full px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-700 transition-colors"
+                    <Link
+                        href="/dashboard/venues"
+                        prefetch={true}
+                        className="block w-full px-6 py-3 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-700 transition-colors text-center"
                     >
                         {t('NewVenue.back_to_venues')}
-                    </button>
+                    </Link>
                 </div>
             </div>
         );
@@ -1395,13 +1397,14 @@ export default function NewVenuePage() {
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 py-3 sm:py-4">
                     <div className="flex items-center justify-between">
-                        <button
-                            onClick={() => router.push('/dashboard/venues')}
+                        <Link
+                            href="/dashboard/venues"
+                            prefetch={true}
                             className="text-slate-500 hover:text-slate-700 font-medium text-xs sm:text-sm flex items-center gap-1"
                         >
                             <X className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             <span className="hidden sm:inline">{t('NewVenue.cancel')}</span>
-                        </button>
+                        </Link>
                         <h1 className="font-semibold text-slate-900 text-sm sm:text-base">{t('NewVenue.header_title')}</h1>
                         <div className="w-10 sm:w-16" />
                     </div>
