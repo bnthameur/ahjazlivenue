@@ -14,7 +14,7 @@ export default async function AdminVenuesPage({ searchParams }: PageProps) {
 
     const { data: venues, error } = await supabase
         .from('venues')
-        .select('*, profiles(full_name, email)')
+        .select('*, profiles(full_name, email, phone)')
         .order('created_at', { ascending: false });
 
     if (error) {

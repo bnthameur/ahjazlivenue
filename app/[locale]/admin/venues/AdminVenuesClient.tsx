@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
-import { updateVenueStatus, deleteVenue } from '../actions';
+import { updateVenueStatus, deleteVenue, toggleVenueFeatured } from '../actions';
 import { Emoji } from 'react-apple-emojis';
 import { useTranslations } from 'next-intl';
 
@@ -19,9 +19,11 @@ interface Venue {
     status: 'pending' | 'approved' | 'rejected' | 'published';
     rejection_reason?: string;
     created_at: string;
+    is_featured: boolean;
     profiles: {
         full_name: string;
         email: string;
+        phone?: string | null;
     };
 }
 
@@ -150,12 +152,35 @@ function RejectModal({ venue, rejectionReason, onReasonChange, onConfirm, onCanc
     );
 }
 
+// ─── Search Icon ───────────────────────────────────────────────────────────────
+
+function SearchIcon({ className }: { className?: string }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden="true"
+        >
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+    );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function AdminVenuesClient({ initialVenues, statusFilter }: { initialVenues: Venue[]; statusFilter: string }) {
     const t = useTranslations('Admin');
     const [venues, setVenues] = useState(initialVenues);
     const [currentFilter, setCurrentFilter] = useState(statusFilter);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [featuringId, setFeaturingId] = useState<string | null>(null);
 
     // Modals
     const [showRejectModal, setShowRejectModal] = useState(false);
@@ -180,10 +205,22 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
         setToasts(prev => prev.filter(t => t.id !== id));
     }, []);
 
-    // Derived filtered list — computed from local state only, no page refresh needed
-    const filteredVenues = currentFilter === 'all'
-        ? venues
-        : venues.filter(v => v.status === currentFilter);
+    // Derived filtered list — status filter + client-side search
+    const filteredVenues = useMemo(() => {
+        const statusFiltered = currentFilter === 'all'
+            ? venues
+            : venues.filter(v => v.status === currentFilter);
+
+        const query = searchQuery.trim().toLowerCase();
+        if (!query) return statusFiltered;
+
+        return statusFiltered.filter(v => {
+            const name = (v.title || v.name || '').toLowerCase();
+            const email = (v.profiles?.email || '').toLowerCase();
+            const phone = (v.profiles?.phone || '').toLowerCase();
+            return name.includes(query) || email.includes(query) || phone.includes(query);
+        });
+    }, [venues, currentFilter, searchQuery]);
 
     // ── Approve ────────────────────────────────────────────────────────────────
     const handleApprove = async (venue: Venue) => {
@@ -256,6 +293,37 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
         }
     };
 
+    // ── Toggle Featured ────────────────────────────────────────────────────────
+    const handleToggleFeatured = async (venue: Venue) => {
+        setFeaturingId(venue.id);
+        const newFeatured = !venue.is_featured;
+
+        // Optimistic update
+        setVenues(prev => prev.map(v =>
+            v.id === venue.id ? { ...v, is_featured: newFeatured } : v
+        ));
+
+        const formData = new FormData();
+        formData.append('venueId', venue.id);
+        formData.append('isFeatured', String(newFeatured));
+        const result = await toggleVenueFeatured(formData);
+
+        setFeaturingId(null);
+
+        if (result?.error) {
+            // Revert on failure
+            setVenues(prev => prev.map(v =>
+                v.id === venue.id ? { ...v, is_featured: venue.is_featured } : v
+            ));
+            addToast('error', t('venues.feature_error'));
+        } else {
+            addToast(
+                'success',
+                newFeatured ? t('venues.feature_success') : t('venues.unfeature_success')
+            );
+        }
+    };
+
     // ── Status badge ───────────────────────────────────────────────────────────
     const getStatusBadge = (status: string) => {
         const badges = {
@@ -277,8 +345,35 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
             <Toast toasts={toasts} onDismiss={dismissToast} />
 
             <div>
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-6">
                     <h1 className="text-2xl font-bold text-slate-900">{t('venues.title')}</h1>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative mb-5">
+                    <div className="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+                        <SearchIcon className="w-4 h-4 text-slate-400" />
+                    </div>
+                    <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder={t('venues.search_placeholder')}
+                        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 ps-10 pe-4 text-sm text-slate-900 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-colors"
+                        aria-label={t('venues.search_placeholder')}
+                    />
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => setSearchQuery('')}
+                            className="absolute inset-y-0 end-0 flex items-center pe-3.5 text-slate-400 hover:text-slate-600"
+                            aria-label={t('venues.search_clear')}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4" aria-hidden="true">
+                                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                            </svg>
+                        </button>
+                    )}
                 </div>
 
                 {/* Filter Tabs */}
@@ -300,6 +395,13 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                     ))}
                 </div>
 
+                {/* Result count when searching */}
+                {searchQuery && (
+                    <p className="mb-4 text-sm text-slate-500">
+                        {t('venues.search_results_count', { count: filteredVenues.length })}
+                    </p>
+                )}
+
                 {/* Venues Grid */}
                 <div className="grid grid-cols-1 gap-4">
                     {filteredVenues.length === 0 ? (
@@ -308,14 +410,21 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                 <Emoji name="classical-building" width={48} />
                             </div>
                             <p className="text-slate-500">
-                                {t('venues.no_venues', { status: currentFilter === 'all' ? 'All' : t(`status.${currentFilter}`) })}
+                                {searchQuery
+                                    ? t('venues.no_search_results')
+                                    : t('venues.no_venues', { status: currentFilter === 'all' ? 'All' : t(`status.${currentFilter}`) })
+                                }
                             </p>
                         </div>
                     ) : (
                         filteredVenues.map((venue) => (
                             <div
                                 key={venue.id}
-                                className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 hover:shadow-md transition-all"
+                                className={`bg-white rounded-xl border p-4 sm:p-6 hover:shadow-md transition-all ${
+                                    venue.is_featured
+                                        ? 'border-amber-300 ring-1 ring-amber-200'
+                                        : 'border-slate-200'
+                                }`}
                             >
                                 <div className="flex flex-col sm:flex-row gap-4">
                                     {/* Thumbnail */}
@@ -337,15 +446,38 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between gap-2 mb-2">
                                             <div className="flex-1 min-w-0">
-                                                <h3 className="font-semibold text-slate-900 truncate">{venue.title || venue.name}</h3>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h3 className="font-semibold text-slate-900 truncate">{venue.title || venue.name}</h3>
+                                                    {venue.is_featured && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200">
+                                                            ★ {t('venues.featured_badge')}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-sm text-slate-500 truncate">{venue.location}</p>
                                             </div>
                                             {getStatusBadge(venue.status)}
                                         </div>
 
-                                        <div className="mb-3">
+                                        {/* Owner Info */}
+                                        <div className="mb-3 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
                                             <p className="text-sm font-medium text-slate-700">{venue.profiles?.full_name || t('fallbacks.unknown_owner')}</p>
-                                            <p className="text-xs text-slate-500">{venue.profiles?.email}</p>
+                                            {venue.profiles?.email && (
+                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                    <span className="font-medium text-slate-600">{t('venues.owner_email')}:</span>{' '}
+                                                    <a href={`mailto:${venue.profiles.email}`} className="hover:underline hover:text-primary-600 transition-colors">
+                                                        {venue.profiles.email}
+                                                    </a>
+                                                </p>
+                                            )}
+                                            {venue.profiles?.phone && (
+                                                <p className="text-xs text-slate-500 mt-0.5">
+                                                    <span className="font-medium text-slate-600">{t('venues.owner_phone')}:</span>{' '}
+                                                    <a href={`tel:${venue.profiles.phone}`} className="hover:underline hover:text-primary-600 transition-colors" dir="ltr">
+                                                        {venue.profiles.phone}
+                                                    </a>
+                                                </p>
+                                            )}
                                         </div>
 
                                         <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
@@ -382,6 +514,27 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                                     {t('venues.reject')}
                                                 </button>
                                             )}
+
+                                            {/* Featured toggle */}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleToggleFeatured(venue)}
+                                                disabled={featuringId === venue.id}
+                                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-60 ${
+                                                    venue.is_featured
+                                                        ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-amber-50 hover:text-amber-700'
+                                                }`}
+                                                aria-label={venue.is_featured ? t('venues.unfeature') : t('venues.feature')}
+                                            >
+                                                {featuringId === venue.id
+                                                    ? '...'
+                                                    : venue.is_featured
+                                                        ? `★ ${t('venues.unfeature')}`
+                                                        : `☆ ${t('venues.feature')}`
+                                                }
+                                            </button>
+
                                             <Link
                                                 href={`/admin/venues/${venue.id}`}
                                                 className="px-3 py-1.5 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors"

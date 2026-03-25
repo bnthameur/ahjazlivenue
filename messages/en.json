@@ -489,7 +489,19 @@
                 "cancel": "Cancel",
                 "confirm": "Delete",
                 "deleting": "Deleting..."
-            }
+            },
+            "search_placeholder": "Search by venue name, owner email, or phone...",
+            "search_clear": "Clear search",
+            "search_results_count": "{count} result(s) found",
+            "no_search_results": "No venues match your search.",
+            "owner_email": "Email",
+            "owner_phone": "Phone",
+            "featured_badge": "Featured",
+            "feature": "Feature",
+            "unfeature": "Unfeature",
+            "feature_success": "Venue marked as featured",
+            "unfeature_success": "Venue removed from featured",
+            "feature_error": "Failed to update featured status. Please try again."
         },
         "users": {
             "title": "Users Management",

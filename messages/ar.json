@@ -489,7 +489,19 @@
                 "cancel": "إلغاء",
                 "confirm": "حذف",
                 "deleting": "جاري الحذف..."
-            }
+            },
+            "search_placeholder": "البحث باسم القاعة أو البريد الإلكتروني أو رقم الهاتف...",
+            "search_clear": "مسح البحث",
+            "search_results_count": "تم العثور على {count} نتيجة",
+            "no_search_results": "لا توجد قاعات تطابق بحثك.",
+            "owner_email": "البريد الإلكتروني",
+            "owner_phone": "رقم الهاتف",
+            "featured_badge": "مميزة",
+            "feature": "تمييز",
+            "unfeature": "إلغاء التمييز",
+            "feature_success": "تم تمييز القاعة بنجاح",
+            "unfeature_success": "تم إلغاء تمييز القاعة",
+            "feature_error": "فشل تحديث حالة التمييز. يرجى المحاولة مرة أخرى."
         },
         "users": {
             "title": "إدارة المستخدمين",

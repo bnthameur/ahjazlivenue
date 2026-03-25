@@ -287,10 +287,21 @@ export async function deleteVenue(formData: FormData): Promise<{ success?: boole
     const { supabase } = admin;
 
     try {
-        // Delete related data first to avoid FK constraint errors
-        await supabase.from('inquiries').delete().eq('venue_id', venueId);
-        await supabase.from('contact_inquiries').delete().eq('venue_id', venueId);
-        await supabase.from('notifications').delete().eq('venue_id', venueId);
+        // Delete all rows that reference venues(id) via FK constraints, in dependency order.
+        // analytics and venue_media are the most common blockers.
+        const cleanupResults = await Promise.all([
+            supabase.from('analytics').delete().eq('venue_id', venueId),
+            supabase.from('venue_media').delete().eq('venue_id', venueId),
+            supabase.from('inquiries').delete().eq('venue_id', venueId),
+            supabase.from('contact_inquiries').delete().eq('venue_id', venueId),
+        ]);
+
+        // Surface any cleanup error for easier debugging, but don't abort — some tables may be empty
+        for (const result of cleanupResults) {
+            if (result.error) {
+                console.error('Cleanup step error (non-fatal):', result.error.message);
+            }
+        }
 
         const { error } = await supabase.from('venues').delete().eq('id', venueId);
         if (error) throw error;
