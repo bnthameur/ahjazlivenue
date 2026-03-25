@@ -137,6 +137,12 @@
             "photo_count": "الصور",
             "what_happens_next": "ماذا سيحدث بعد ذلك؟",
             "review_notice": "سيتم مراجعة قاعتك من فريقنا خلال 24-48 ساعة. بمجرد الموافقة، ستكون مرئية لآلاف العملاء المحتملين.",
+            "offers_title": "العروض",
+            "offers_desc": "أضف عروضاً خاصة لقاعتك (الحد الأقصى 4)",
+            "offer_name": "عنوان العرض",
+            "offer_price": "السعر (دج)",
+            "add_offer": "إضافة عرض",
+            "max_offers": "الحد الأقصى 4 عروض",
             "wilaya": "الولاية",
             "city": "المدينة",
             "select_city": "اختر المدينة",
@@ -257,7 +263,13 @@
         "amenity_garden": "حديقة",
         "amenity_pool": "مسبح",
         "amenity_terrace": "تراس",
-        "amenity_stage": "مسرح"
+        "amenity_stage": "مسرح",
+        "offers_title": "العروض",
+        "offers_desc": "أضف عروضاً خاصة لقاعتك (الحد الأقصى 4)",
+        "offer_name": "عنوان العرض",
+        "offer_price": "السعر (دج)",
+        "add_offer": "إضافة عرض",
+        "max_offers": "الحد الأقصى 4 عروض"
     },
     "wilayas": {
         "Adrar": "أدرار",

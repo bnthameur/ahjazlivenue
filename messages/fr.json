@@ -141,7 +141,13 @@
             "starting_price": "Prix de Départ",
             "photo_count": "Photos",
             "what_happens_next": "Que se passe-t-il ensuite ?",
-            "review_notice": "Votre lieu sera examiné par notre équipe sous 24-48 heures. Une fois approuvé, il sera visible par des milliers de clients potentiels."
+            "review_notice": "Votre lieu sera examiné par notre équipe sous 24-48 heures. Une fois approuvé, il sera visible par des milliers de clients potentiels.",
+            "offers_title": "Offres",
+            "offers_desc": "Ajoutez des offres spéciales (max 4)",
+            "offer_name": "Titre de l'offre",
+            "offer_price": "Prix (DZD)",
+            "add_offer": "Ajouter une offre",
+            "max_offers": "Maximum 4 offres"
         },
         "categories": {
             "wedding_hall": "Salle des Fêtes",
@@ -257,7 +263,13 @@
         "amenity_garden": "Jardin",
         "amenity_pool": "Piscine",
         "amenity_terrace": "Terrasse",
-        "amenity_stage": "Scène"
+        "amenity_stage": "Scène",
+        "offers_title": "Offres",
+        "offers_desc": "Ajoutez des offres spéciales (max 4)",
+        "offer_name": "Titre de l'offre",
+        "offer_price": "Prix (DZD)",
+        "add_offer": "Ajouter une offre",
+        "max_offers": "Maximum 4 offres"
     },
     "wilayas": {
         "Adrar": "Adrar",

@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
 import { uploadVenueImages, uploadVenueVideo, deleteVenueVideo, fetchVenueMedia, VenueMediaRecord, VideoUploadProgress } from '@/lib/supabase/storage';
 import { formatBytes } from '@/lib/media-optimizer';
+import MapPicker from '@/components/MapPicker';
 import {
     Building2, PartyPopper, Users, TreeDeciduous, Home, Hotel, Utensils, Moon,
     Upload, X, Check, ChevronRight, MapPin, Phone, Mail, Facebook, Instagram,
@@ -240,10 +241,8 @@ export default function EditVenuePage() {
         address: '',
         latitude: '',
         longitude: '',
-        capacity_min: '',
         capacity_max: '',
         price_range_min: '',
-        price_range_max: '',
         phone: '',
         whatsapp: '',
         email: '',
@@ -252,6 +251,7 @@ export default function EditVenuePage() {
         amenities: [] as string[],
         images: [] as string[],
         status: 'pending',
+        offers: [] as Array<{ title: string; price: number }>,
     });
     const [planLimits, setPlanLimits] = useState<{ maxImages: number; maxVideos: number }>({ maxImages: 5, maxVideos: 0 });
     const [hasActiveSub, setHasActiveSub] = useState(true); // assume true until checked
@@ -276,10 +276,8 @@ export default function EditVenuePage() {
                         address: data.address || '',
                         latitude: data.latitude?.toString() || '',
                         longitude: data.longitude?.toString() || '',
-                        capacity_min: data.capacity_min?.toString() || '',
                         capacity_max: data.capacity_max?.toString() || '',
                         price_range_min: data.price_min?.toString() || '',
-                        price_range_max: data.price_max?.toString() || '',
                         phone: data.phone || '',
                         whatsapp: data.whatsapp || '',
                         email: data.contact_email || '',
@@ -288,6 +286,7 @@ export default function EditVenuePage() {
                         amenities: data.amenities || [],
                         images: data.images || [],
                         status: data.status || 'pending',
+                        offers: Array.isArray(data.offers) ? data.offers : [],
                     });
                 }
                 setVideos(venueMedia);
@@ -437,10 +436,10 @@ export default function EditVenuePage() {
                     address: formData.address,
                     latitude: formData.latitude ? parseFloat(formData.latitude) : null,
                     longitude: formData.longitude ? parseFloat(formData.longitude) : null,
-                    capacity_min: parseInt(formData.capacity_min) || 0,
+                    capacity_min: 0,
                     capacity_max: parseInt(formData.capacity_max) || 0,
                     price_min: parseFloat(formData.price_range_min) || 0,
-                    price_max: parseFloat(formData.price_range_max) || 0,
+                    price_max: parseFloat(formData.price_range_min) || 0,
                     phone: formData.phone,
                     whatsapp: formData.whatsapp,
                     contact_email: formData.email,
@@ -448,6 +447,7 @@ export default function EditVenuePage() {
                     instagram_url: formData.instagram_url,
                     amenities: formData.amenities,
                     images: formData.images,
+                    offers: formData.offers,
                 })
                 .eq('id', id);
 
@@ -581,6 +581,18 @@ export default function EditVenuePage() {
                         </FormField>
                     </div>
 
+                    <div className="space-y-2">
+                        <p className="text-xs text-slate-500">{te('map_picker_hint')}</p>
+                        <MapPicker
+                            lat={formData.latitude ? parseFloat(formData.latitude) : null}
+                            lng={formData.longitude ? parseFloat(formData.longitude) : null}
+                            onLocationChange={(lat: number, lng: number) => {
+                                updateField('latitude', String(lat));
+                                updateField('longitude', String(lng));
+                            }}
+                        />
+                    </div>
+
                     <FormField label={te('description')} required help={te('desc_help')}>
                         <TextArea
                             value={formData.description}
@@ -598,48 +610,22 @@ export default function EditVenuePage() {
         <div className="space-y-6">
             <SectionCard title={te('capacity_title')} description={te('capacity_desc')}>
                 <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <h4 className="font-medium text-slate-900">{te('capacity_label')}</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                            <FormField label={te('minimum')}>
-                                <Input
-                                    type="number"
-                                    value={formData.capacity_min}
-                                    onChange={(e) => updateField('capacity_min', e.target.value)}
-                                    placeholder="50"
-                                />
-                            </FormField>
-                            <FormField label={te('maximum')}>
-                                <Input
-                                    type="number"
-                                    value={formData.capacity_max}
-                                    onChange={(e) => updateField('capacity_max', e.target.value)}
-                                    placeholder="300"
-                                />
-                            </FormField>
-                        </div>
-                    </div>
-                    <div className="space-y-4">
-                        <h4 className="font-medium text-slate-900">{te('price_label')}</h4>
-                        <div className="grid grid-cols-2 gap-3">
-                            <FormField label={te('from')}>
-                                <Input
-                                    type="number"
-                                    value={formData.price_range_min}
-                                    onChange={(e) => updateField('price_range_min', e.target.value)}
-                                    placeholder="50000"
-                                />
-                            </FormField>
-                            <FormField label={te('to')}>
-                                <Input
-                                    type="number"
-                                    value={formData.price_range_max}
-                                    onChange={(e) => updateField('price_range_max', e.target.value)}
-                                    placeholder="150000"
-                                />
-                            </FormField>
-                        </div>
-                    </div>
+                    <FormField label={te('capacity_label')}>
+                        <Input
+                            type="number"
+                            value={formData.capacity_max}
+                            onChange={(e) => updateField('capacity_max', e.target.value)}
+                            placeholder="300"
+                        />
+                    </FormField>
+                    <FormField label={te('price_label')}>
+                        <Input
+                            type="number"
+                            value={formData.price_range_min}
+                            onChange={(e) => updateField('price_range_min', e.target.value)}
+                            placeholder="50000"
+                        />
+                    </FormField>
                 </div>
             </SectionCard>
 
@@ -654,6 +640,87 @@ export default function EditVenuePage() {
                         />
                     ))}
                 </div>
+            </SectionCard>
+
+            <SectionCard
+                title={te('offers_title')}
+                description={te('offers_desc')}
+                action={
+                    formData.offers.length < 4 ? (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    offers: [...prev.offers, { title: '', price: 0 }],
+                                }));
+                                setHasChanges(true);
+                            }}
+                            className="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1.5"
+                        >
+                            <span className="text-base leading-none">+</span>
+                            {te('add_offer')}
+                        </button>
+                    ) : (
+                        <span className="text-xs text-slate-400">{te('max_offers')}</span>
+                    )
+                }
+            >
+                {formData.offers.length === 0 ? (
+                    <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-xl">
+                        <p className="text-slate-400 text-sm">{te('offers_desc')}</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {formData.offers.map((offer, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div className="flex-1">
+                                    <input
+                                        type="text"
+                                        value={offer.title}
+                                        onChange={(e) => {
+                                            const updated = formData.offers.map((o, i) =>
+                                                i === idx ? { ...o, title: e.target.value } : o
+                                            );
+                                            setFormData(prev => ({ ...prev, offers: updated }));
+                                            setHasChanges(true);
+                                        }}
+                                        placeholder={te('offer_name')}
+                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                    />
+                                </div>
+                                <div className="w-36">
+                                    <input
+                                        type="number"
+                                        value={offer.price === 0 ? '' : offer.price}
+                                        onChange={(e) => {
+                                            const updated = formData.offers.map((o, i) =>
+                                                i === idx ? { ...o, price: parseFloat(e.target.value) || 0 } : o
+                                            );
+                                            setFormData(prev => ({ ...prev, offers: updated }));
+                                            setHasChanges(true);
+                                        }}
+                                        placeholder={te('offer_price')}
+                                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            offers: prev.offers.filter((_, i) => i !== idx),
+                                        }));
+                                        setHasChanges(true);
+                                    }}
+                                    className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </SectionCard>
 
         </div>

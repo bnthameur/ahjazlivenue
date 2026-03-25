@@ -8,6 +8,7 @@ import { validateVideo } from '@/lib/media-optimizer';
 import { formatBytes } from '@/lib/media-optimizer';
 import { useTranslations, useLocale } from 'next-intl';
 import { WILAYAS, getWilayaLabel, getWilayas } from '@/lib/wilayas';
+import MapPicker from '@/components/MapPicker';
 import {
     Building2,
     PartyPopper,
@@ -443,15 +444,16 @@ export default function NewVenuePage() {
     
     const [formData, setFormData] = useState({
         name: '',
+        slug: '',
         description: '',
         category: '',
         wilaya: '',
         city: '',
         address: '',
-        capacity_min: '',
+        latitude: '',
+        longitude: '',
         capacity_max: '',
         price_range_min: '',
-        price_range_max: '',
         phone: '',
         whatsapp: '',
         email: '',
@@ -459,6 +461,7 @@ export default function NewVenuePage() {
         instagram_url: '',
         amenities: [] as string[],
         images: [] as string[],
+        offers: [] as Array<{ title: string; price: number }>,
     });
 
     const updateField = (field: string, value: string | string[]) => {
@@ -663,6 +666,7 @@ export default function NewVenuePage() {
                 },
                 body: JSON.stringify({
                     name: formData.name,
+                    slug: formData.slug || undefined,
                     title: formData.name,
                     description: formData.description,
                     category: formData.category,
@@ -670,11 +674,13 @@ export default function NewVenuePage() {
                     wilaya: formData.wilaya,
                     city: formData.city,
                     address: formData.address,
-                    capacity_min: parseInt(formData.capacity_min) || 0,
+                    latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+                    longitude: formData.longitude ? parseFloat(formData.longitude) : null,
+                    capacity_min: 0,
                     capacity_max: parseInt(formData.capacity_max) || 0,
                     capacity: parseInt(formData.capacity_max) || 0,
                     price_min: parseFloat(formData.price_range_min) || 0,
-                    price_max: parseFloat(formData.price_range_max) || 0,
+                    price_max: parseFloat(formData.price_range_min) || 0,
                     price: parseFloat(formData.price_range_min) || 0,
                     phone: formData.phone,
                     whatsapp: formData.whatsapp,
@@ -683,6 +689,7 @@ export default function NewVenuePage() {
                     instagram_url: formData.instagram_url,
                     amenities: formData.amenities,
                     images: formData.images,
+                    offers: formData.offers,
                 }),
             });
 
@@ -801,18 +808,41 @@ export default function NewVenuePage() {
             </div>
 
             <div className="space-y-4 sm:space-y-6">
-                {/* Venue Name */}
-                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
-                        {t('NewVenue.form.name')} <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => updateField('name', e.target.value)}
-                        placeholder={t('NewVenue.form.name_placeholder')}
-                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-base"
-                    />
+                {/* Venue Name & Slug */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            {t('NewVenue.form.name')} <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.name}
+                            onChange={(e) => updateField('name', e.target.value)}
+                            placeholder={t('NewVenue.form.name_placeholder')}
+                            className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-base"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            {t('NewVenue.form.slug')}
+                        </label>
+                        <div className="flex items-center">
+                            <span className="text-xs text-slate-400 bg-slate-100 border border-slate-200 border-e-0 rounded-s-xl px-3 py-2.5 whitespace-nowrap shrink-0">
+                                ahjazliqaati.com/salles/
+                            </span>
+                            <input
+                                type="text"
+                                value={formData.slug}
+                                onChange={(e) => {
+                                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/--+/g, '-');
+                                    updateField('slug', val);
+                                }}
+                                placeholder={t('NewVenue.form.slug_placeholder')}
+                                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-e-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                            />
+                        </div>
+                        <p className="mt-1 text-xs text-slate-400">{t('NewVenue.form.slug_help')}</p>
+                    </div>
                 </div>
 
                 {/* Category */}
@@ -887,6 +917,47 @@ export default function NewVenuePage() {
                     </div>
                 </div>
 
+                {/* Latitude / Longitude + Map Picker */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                {t('NewVenue.form.latitude')}
+                            </label>
+                            <input
+                                type="number"
+                                step="any"
+                                value={formData.latitude}
+                                onChange={(e) => updateField('latitude', e.target.value)}
+                                placeholder="36.7538"
+                                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                {t('NewVenue.form.longitude')}
+                            </label>
+                            <input
+                                type="number"
+                                step="any"
+                                value={formData.longitude}
+                                onChange={(e) => updateField('longitude', e.target.value)}
+                                placeholder="3.0588"
+                                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                            />
+                        </div>
+                    </div>
+                    <p className="text-xs text-slate-400">{t('NewVenue.form.map_picker_hint')}</p>
+                    <MapPicker
+                        lat={formData.latitude ? parseFloat(formData.latitude) : null}
+                        lng={formData.longitude ? parseFloat(formData.longitude) : null}
+                        onLocationChange={(lat, lng) => {
+                            updateField('latitude', String(lat));
+                            updateField('longitude', String(lng));
+                        }}
+                    />
+                </div>
+
                 {/* Description */}
                 <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
                     <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -926,56 +997,26 @@ export default function NewVenuePage() {
                         <label className="block text-sm font-medium text-slate-700 mb-3 sm:mb-4">
                             {t('NewVenue.form.capacity_label')}
                         </label>
-                        <div className="flex gap-2 sm:gap-3">
-                            <div className="flex-1">
-                                <span className="text-xs text-slate-500 mb-1 block">{t('NewVenue.form.min')}</span>
-                                <input
-                                    type="number"
-                                    value={formData.capacity_min}
-                                    onChange={(e) => updateField('capacity_min', e.target.value)}
-                                    placeholder="50"
-                                    className="w-full px-2 sm:px-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
-                                />
-                            </div>
-                            <div className="flex-1">
-                                <span className="text-xs text-slate-500 mb-1 block">{t('NewVenue.form.max')}</span>
-                                <input
-                                    type="number"
-                                    value={formData.capacity_max}
-                                    onChange={(e) => updateField('capacity_max', e.target.value)}
-                                    placeholder="300"
-                                    className="w-full px-2 sm:px-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
-                                />
-                            </div>
-                        </div>
+                        <input
+                            type="number"
+                            value={formData.capacity_max}
+                            onChange={(e) => updateField('capacity_max', e.target.value)}
+                            placeholder="300"
+                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                        />
                     </div>
-                    
+
                     <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
                         <label className="block text-sm font-medium text-slate-700 mb-3 sm:mb-4">
                             {t('NewVenue.form.price_label')}
                         </label>
-                        <div className="flex gap-2 sm:gap-3">
-                            <div className="flex-1">
-                                <span className="text-xs text-slate-500 mb-1 block">{t('NewVenue.form.from')}</span>
-                                <input
-                                    type="number"
-                                    value={formData.price_range_min}
-                                    onChange={(e) => updateField('price_range_min', e.target.value)}
-                                    placeholder="50000"
-                                    className="w-full px-2 sm:px-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
-                                />
-                            </div>
-                            <div className="flex-1">
-                                <span className="text-xs text-slate-500 mb-1 block">{t('NewVenue.form.to')}</span>
-                                <input
-                                    type="number"
-                                    value={formData.price_range_max}
-                                    onChange={(e) => updateField('price_range_max', e.target.value)}
-                                    placeholder="150000"
-                                    className="w-full px-2 sm:px-3 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-lg sm:rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
-                                />
-                            </div>
-                        </div>
+                        <input
+                            type="number"
+                            value={formData.price_range_min}
+                            onChange={(e) => updateField('price_range_min', e.target.value)}
+                            placeholder="50000"
+                            className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm"
+                        />
                     </div>
                 </div>
 
@@ -994,6 +1035,81 @@ export default function NewVenuePage() {
                             />
                         ))}
                     </div>
+                </div>
+
+                {/* Offers */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700">
+                                {t('NewVenue.form.offers_title')}
+                            </label>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                {t('NewVenue.form.offers_desc')}
+                            </p>
+                        </div>
+                        {formData.offers.length < 4 ? (
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({
+                                    ...prev,
+                                    offers: [...prev.offers, { title: '', price: 0 }],
+                                }))}
+                                className="px-3 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-1 shrink-0"
+                            >
+                                <span className="text-sm leading-none">+</span>
+                                {t('NewVenue.form.add_offer')}
+                            </button>
+                        ) : (
+                            <span className="text-xs text-slate-400 shrink-0">{t('NewVenue.form.max_offers')}</span>
+                        )}
+                    </div>
+                    {formData.offers.length === 0 ? (
+                        <div className="text-center py-6 border-2 border-dashed border-slate-200 rounded-xl">
+                            <p className="text-slate-400 text-xs">{t('NewVenue.form.offers_desc')}</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {formData.offers.map((offer, idx) => (
+                                <div key={idx} className="flex items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                                    <input
+                                        type="text"
+                                        value={offer.title}
+                                        onChange={(e) => {
+                                            const updated = formData.offers.map((o, i) =>
+                                                i === idx ? { ...o, title: e.target.value } : o
+                                            );
+                                            setFormData(prev => ({ ...prev, offers: updated }));
+                                        }}
+                                        placeholder={t('NewVenue.form.offer_name')}
+                                        className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                    />
+                                    <input
+                                        type="number"
+                                        value={offer.price === 0 ? '' : offer.price}
+                                        onChange={(e) => {
+                                            const updated = formData.offers.map((o, i) =>
+                                                i === idx ? { ...o, price: parseFloat(e.target.value) || 0 } : o
+                                            );
+                                            setFormData(prev => ({ ...prev, offers: updated }));
+                                        }}
+                                        placeholder={t('NewVenue.form.offer_price')}
+                                        className="w-32 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({
+                                            ...prev,
+                                            offers: prev.offers.filter((_, i) => i !== idx),
+                                        }))}
+                                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Photos */}
@@ -1268,7 +1384,7 @@ export default function NewVenuePage() {
                         <div className="grid grid-cols-3 gap-2 sm:gap-4">
                             <div className="p-2.5 sm:p-4 bg-slate-50 rounded-lg sm:rounded-xl text-center">
                                 <div className="text-lg sm:text-2xl font-bold text-slate-900">
-                                    {formData.capacity_max || formData.capacity_min || '-'}
+                                    {formData.capacity_max || '-'}
                                 </div>
                                 <div className="text-[10px] sm:text-xs text-slate-500 uppercase tracking-wide mt-1">{t('VenueDetails.capacity_label')}</div>
                             </div>

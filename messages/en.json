@@ -141,7 +141,13 @@
             "starting_price": "Starting Price",
             "photo_count": "Photos",
             "what_happens_next": "What happens next?",
-            "review_notice": "Your venue will be reviewed by our team within 24-48 hours. Once approved, it will be visible to thousands of potential customers."
+            "review_notice": "Your venue will be reviewed by our team within 24-48 hours. Once approved, it will be visible to thousands of potential customers.",
+            "offers_title": "Offers",
+            "offers_desc": "Add special offers for your venue (max 4)",
+            "offer_name": "Offer Title",
+            "offer_price": "Price (DZD)",
+            "add_offer": "Add Offer",
+            "max_offers": "Maximum 4 offers"
         },
         "categories": {
             "wedding_hall": "Wedding Hall",
@@ -257,7 +263,13 @@
         "amenity_garden": "Garden",
         "amenity_pool": "Pool",
         "amenity_terrace": "Terrace",
-        "amenity_stage": "Stage"
+        "amenity_stage": "Stage",
+        "offers_title": "Offers",
+        "offers_desc": "Add special offers for your venue (max 4)",
+        "offer_name": "Offer Title",
+        "offer_price": "Price (DZD)",
+        "add_offer": "Add Offer",
+        "max_offers": "Maximum 4 offers"
     },
     "wilayas": {
         "Adrar": "Adrar",
