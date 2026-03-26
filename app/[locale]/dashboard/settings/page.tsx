@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import SettingsClient from './SettingsClient';
 import { normalizeSubscriptionSummary } from '@/lib/owner-billing';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export default async function SettingsPage() {
     const cookieStore = await cookies();
@@ -46,13 +47,16 @@ export default async function SettingsPage() {
         supabase
             .from('subscription_plans')
             .select('id, name, name_ar, name_fr, price_monthly, price_yearly, duration_months, max_venues, max_images_per_venue, max_videos_per_venue')
+            .eq('is_active', true)
             .order('price_monthly', { ascending: true }),
         supabase
             .from('payment_receipts')
             .select('id, receipt_url, payment_method, amount, status, admin_note, created_at, reviewed_at')
             .eq('user_id', user?.id)
             .order('created_at', { ascending: false }),
-        supabase.from('platform_settings').select('key, value'),
+        // Use the admin client so RLS never silently blocks platform-wide settings
+        // that every authenticated owner needs to see (CCP / Baridimob details).
+        createAdminClient().from('platform_settings').select('key, value'),
         supabase
             .from('venues')
             .select('*', { count: 'exact', head: true })

@@ -1,11 +1,18 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { detectPreferredLocale } from '@/i18n/locale-utils';
 
+/**
+ * Verifies the current session user is an admin, then returns both:
+ * - `supabase`: anon-key client (used only for auth/profile reads, notifications)
+ * - `adminDb`: service-role client (bypasses RLS — use for all writes/deletes)
+ * - `user`: the authenticated admin user
+ */
 async function getAdminClient() {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
@@ -13,7 +20,8 @@ async function getAdminClient() {
     if (!user) return null;
     const { data: adminProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     if (adminProfile?.role !== 'admin') return null;
-    return { supabase, user };
+    const adminDb = createAdminClient();
+    return { supabase, adminDb, user };
 }
 
 export async function updateUserStatus(formData: FormData) {
@@ -157,10 +165,10 @@ export async function updatePlatformSetting(formData: FormData) {
 
     const admin = await getAdminClient();
     if (!admin) return { error: 'Unauthorized' };
-    const { supabase } = admin;
+    const { adminDb } = admin;
 
     try {
-        const { error } = await supabase
+        const { error } = await adminDb
             .from('platform_settings')
             .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 
@@ -183,7 +191,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
 
     const admin = await getAdminClient();
     if (!admin) return;
-    const { supabase, user } = admin;
+    const { supabase, adminDb, user } = admin;
 
     try {
         const status = action === 'approve' ? 'approved' : 'rejected';
@@ -194,7 +202,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
             return match?.[1] || null;
         };
 
-        const { data: receipt, error: receiptError } = await supabase
+        const { data: receipt, error: receiptError } = await adminDb
             .from('payment_receipts')
             .update({
                 status,
@@ -210,13 +218,13 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
 
         // If approved, also activate the user's account if currently pending
         if (action === 'approve' && receipt?.user_id) {
-            await supabase
+            await adminDb
                 .from('profiles')
                 .update({ status: 'active' })
                 .eq('id', receipt.user_id)
                 .eq('status', 'pending');
 
-            const { data: pendingSubscription } = await supabase
+            const { data: pendingSubscription } = await adminDb
                 .from('user_subscriptions')
                 .select('id, expires_at, created_at')
                 .eq('user_id', receipt.user_id)
@@ -232,7 +240,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
             const selectedPlanId = extractPlanIdFromReceiptUrl(receipt.receipt_url);
 
             if (pendingSubscription?.id) {
-                await supabase
+                await adminDb
                     .from('user_subscriptions')
                     .update({
                         status: 'active',
@@ -241,7 +249,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
                     })
                     .eq('id', pendingSubscription.id);
             } else if (selectedPlanId) {
-                await supabase
+                await adminDb
                     .from('user_subscriptions')
                     .insert({
                         user_id: receipt.user_id,
@@ -253,7 +261,8 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
             }
         }
 
-        // Send notification to the user
+        // Send notification to the user (anon client is fine here for inserts if RLS allows it,
+        // but use adminDb to be safe)
         if (receipt?.user_id) {
             const notificationTitle = action === 'approve'
                 ? 'Payment Approved'
@@ -262,7 +271,7 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
                 ? `Your payment of ${receipt.amount} DZD has been approved. Your account and subscription are now active.`
                 : `Your payment receipt has been rejected.${adminNote ? ' Reason: ' + adminNote : ''}`;
 
-            await supabase.from('notifications').insert({
+            await adminDb.from('notifications').insert({
                 recipient_id: receipt.user_id,
                 sender_id: user.id,
                 title: notificationTitle,
@@ -284,27 +293,43 @@ export async function deleteVenue(formData: FormData): Promise<{ success?: boole
 
     const admin = await getAdminClient();
     if (!admin) return { error: 'Unauthorized' };
-    const { supabase } = admin;
+    // Use the service-role client so RLS does not block the deletes.
+    const { adminDb } = admin;
 
     try {
-        // Delete all rows that reference venues(id) via FK constraints, in dependency order.
-        // analytics and venue_media are the most common blockers.
-        const cleanupResults = await Promise.all([
-            supabase.from('analytics').delete().eq('venue_id', venueId),
-            supabase.from('venue_media').delete().eq('venue_id', venueId),
-            supabase.from('inquiries').delete().eq('venue_id', venueId),
-            supabase.from('contact_inquiries').delete().eq('venue_id', venueId),
-        ]);
+        // Delete all FK-dependent rows first, in dependency order.
+        // Each step is awaited individually so errors are not swallowed.
 
-        // Surface any cleanup error for easier debugging, but don't abort — some tables may be empty
-        for (const result of cleanupResults) {
-            if (result.error) {
-                console.error('Cleanup step error (non-fatal):', result.error.message);
-            }
-        }
+        const { error: analyticsError } = await adminDb
+            .from('analytics')
+            .delete()
+            .eq('venue_id', venueId);
+        if (analyticsError) console.error('analytics cleanup error:', analyticsError.message);
 
-        const { error } = await supabase.from('venues').delete().eq('id', venueId);
-        if (error) throw error;
+        const { error: mediaError } = await adminDb
+            .from('venue_media')
+            .delete()
+            .eq('venue_id', venueId);
+        if (mediaError) throw new Error(`venue_media cleanup failed: ${mediaError.message}`);
+
+        const { error: inquiriesError } = await adminDb
+            .from('inquiries')
+            .delete()
+            .eq('venue_id', venueId);
+        if (inquiriesError) throw new Error(`inquiries cleanup failed: ${inquiriesError.message}`);
+
+        const { error: contactError } = await adminDb
+            .from('contact_inquiries')
+            .delete()
+            .eq('venue_id', venueId);
+        if (contactError) throw new Error(`contact_inquiries cleanup failed: ${contactError.message}`);
+
+        // Now delete the venue itself.
+        const { error: venueError } = await adminDb
+            .from('venues')
+            .delete()
+            .eq('id', venueId);
+        if (venueError) throw new Error(`venues delete failed: ${venueError.message}`);
 
         revalidatePath('/admin/venues');
         return { success: true };
@@ -322,10 +347,10 @@ export async function toggleVenueFeatured(formData: FormData) {
 
     const admin = await getAdminClient();
     if (!admin) return { error: 'Unauthorized' };
-    const { supabase } = admin;
+    const { adminDb } = admin;
 
     try {
-        const { error } = await supabase
+        const { error } = await adminDb
             .from('venues')
             .update({ is_featured: isFeatured })
             .eq('id', venueId);

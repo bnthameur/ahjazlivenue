@@ -339,7 +339,7 @@ export default function BillingSettingsSection({
                                     <div className="mt-4 space-y-2 text-sm text-slate-600">
                                         <div className="flex items-center gap-2">
                                             <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                                            <span>1 {t('settings.billing.venue_count')}</span>
+                                            <span>{plan.max_venues ?? 1} {t('settings.billing.venue_count')}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
