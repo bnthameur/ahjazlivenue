@@ -255,6 +255,7 @@ export default function EditVenuePage() {
     });
     const [planLimits, setPlanLimits] = useState<{ maxImages: number; maxVideos: number }>({ maxImages: 5, maxVideos: 0 });
     const [hasActiveSub, setHasActiveSub] = useState(true); // assume true until checked
+    const [profileStatus, setProfileStatus] = useState<string | null>(null);
 
     // Load venue data
     useEffect(() => {
@@ -291,9 +292,16 @@ export default function EditVenuePage() {
                 }
                 setVideos(venueMedia);
 
-                // Fetch plan limits & subscription status
+                // Fetch plan limits & subscription status (and profile for gate check)
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
+                    const { data: profileData } = await supabase
+                        .from('profiles')
+                        .select('status')
+                        .eq('id', user.id)
+                        .single();
+                    setProfileStatus(profileData?.status ?? null);
+
                     const { data: sub } = await supabase
                         .from('user_subscriptions')
                         .select('*, subscription_plans(*)')
@@ -469,8 +477,8 @@ export default function EditVenuePage() {
         );
     }
 
-    // Block editing if no active subscription — read-only view with warning
-    if (!hasActiveSub) {
+    // Block editing if profile is not active or subscription is inactive/expired
+    if ((profileStatus !== null && profileStatus !== 'active') || !hasActiveSub) {
         return (
             <div className="p-6 lg:p-8 max-w-4xl mx-auto">
                 <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">

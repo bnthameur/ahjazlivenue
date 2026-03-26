@@ -520,5 +520,17 @@
                 "owner": "Owner"
             }
         }
+    },
+    "AccessGate": {
+        "rejected_title": "Account Rejected",
+        "rejected_desc": "Your account application has been rejected. Please contact our support team for more information.",
+        "rejected_contact": "Contact Support",
+        "pending_title": "Account Under Review",
+        "pending_desc": "Your account is currently being reviewed by our team. You will be notified once it is approved.",
+        "pending_hint": "This usually takes 24–48 hours. Make sure your profile and payment receipt are complete in Settings.",
+        "pending_go_settings": "Go to Settings",
+        "no_subscription_title": "Subscription Required",
+        "no_subscription_desc": "An active subscription is required to access this page. Please go to Settings to choose a pack and upload your payment receipt.",
+        "no_subscription_go_settings": "Go to Settings"
     }
 }

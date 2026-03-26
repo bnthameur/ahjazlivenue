@@ -381,14 +381,30 @@ export default function NewVenuePage() {
     const [hasActiveSub, setHasActiveSub] = useState(false);
     const [planLimits, setPlanLimits] = useState({ maxImages: 5, maxVideos: 0, maxVenues: 1 });
     const [currentVenueCount, setCurrentVenueCount] = useState(0);
+    const [profileStatus, setProfileStatus] = useState<string | null>(null);
 
-    // Check subscription on mount — block page if not paid
+    // Check subscription and profile status on mount — block page if not paid or not active
     useEffect(() => {
         const checkSubscription = async () => {
             try {
                 const supabaseClient = (await import('@/lib/supabase/client')).createClient();
                 const { data: { user } } = await supabaseClient.auth.getUser();
                 if (!user) { router.push(`/${locale}/dashboard/settings`); return; }
+
+                // Fetch profile status for second-layer gate check
+                const { data: profileData } = await supabaseClient
+                    .from('profiles')
+                    .select('status')
+                    .eq('id', user.id)
+                    .single();
+                setProfileStatus(profileData?.status ?? null);
+
+                // If profile is not active, block immediately
+                if (profileData?.status && profileData.status !== 'active') {
+                    setHasActiveSub(false);
+                    setSubscriptionLoading(false);
+                    return;
+                }
 
                 // Fetch subscription
                 const { data: sub } = await supabaseClient

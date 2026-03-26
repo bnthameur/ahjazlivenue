@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/LanguageProvider';
+import { SubscriptionRequiredBlock } from '@/app/[locale]/dashboard/DashboardLayout';
+import { hasActiveOwnerSubscription } from '@/lib/owner-billing';
+import type { UserSubscriptionSummary } from '@/lib/owner-billing';
 import { Emoji } from 'react-apple-emojis';
 
 const statusColors: Record<string, string> = {
@@ -38,6 +41,8 @@ export default function InquiriesPage() {
     const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
+    const [profileStatus, setProfileStatus] = useState<string | null>(null);
+    const [subscription, setSubscription] = useState<UserSubscriptionSummary | null>(null);
 
     useEffect(() => {
         fetchInquiries();
@@ -48,6 +53,23 @@ export default function InquiriesPage() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
+
+            // Second-layer gate: fetch profile status and subscription
+            const { data: profileData } = await supabase
+                .from('profiles')
+                .select('status')
+                .eq('id', user.id)
+                .single();
+            setProfileStatus(profileData?.status ?? null);
+
+            const { data: subData } = await supabase
+                .from('user_subscriptions')
+                .select(`id, status, expires_at, created_at, subscription_plans (id, name)`)
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+            setSubscription((subData as unknown as UserSubscriptionSummary) ?? null);
 
             // First get the IDs of all venues this owner owns
             const { data: ownerVenues, error: venuesError } = await supabase
@@ -166,6 +188,14 @@ export default function InquiriesPage() {
                 <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" />
             </div>
         );
+    }
+
+    // Second-layer gate: block if profile is not active or no active subscription
+    if (profileStatus !== null && profileStatus !== 'active') {
+        return <SubscriptionRequiredBlock t={t} />;
+    }
+    if (!hasActiveOwnerSubscription(subscription)) {
+        return <SubscriptionRequiredBlock t={t} />;
     }
 
     return (

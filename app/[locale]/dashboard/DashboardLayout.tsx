@@ -126,6 +126,105 @@ function DashboardLanguageSwitcher() {
     );
 }
 
+// ---- Full-page access gate screens ----
+
+function RejectedGate({ onSignOut, t }: { onSignOut: () => void; t: (key: string) => string }) {
+    return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white rounded-2xl border border-red-200 shadow-lg p-8 text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+                <h1 className="text-xl font-bold text-slate-900 mb-3">{t('gate.rejected.title')}</h1>
+                <p className="text-slate-600 text-sm leading-relaxed mb-6">{t('gate.rejected.desc')}</p>
+                <div className="flex flex-col gap-3">
+                    <a
+                        href="mailto:support@ahjazliqaati.com"
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors text-sm"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        {t('gate.rejected.contact')}
+                    </a>
+                    <button
+                        onClick={onSignOut}
+                        className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                    >
+                        {t('dashboard.header.signout')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function PendingGate({ onSignOut, t, locale }: { onSignOut: () => void; t: (key: string) => string; locale: string }) {
+    return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+            <div className="max-w-md w-full bg-white rounded-2xl border border-amber-200 shadow-lg p-8 text-center">
+                <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h1 className="text-xl font-bold text-slate-900 mb-3">{t('gate.pending.title')}</h1>
+                <p className="text-slate-600 text-sm leading-relaxed mb-3">{t('gate.pending.desc')}</p>
+                <p className="text-amber-600 text-xs leading-relaxed mb-6">{t('gate.pending.hint')}</p>
+                <div className="flex flex-col gap-3">
+                    <Link
+                        href="/dashboard/settings"
+                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-lg transition-colors text-sm"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {t('gate.pending.go_settings')}
+                    </Link>
+                    <button
+                        onClick={onSignOut}
+                        className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                    >
+                        {t('dashboard.header.signout')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// ---- Inline subscription-required block (used inside page components) ----
+export function SubscriptionRequiredBlock({ t }: { t: (key: string) => string }) {
+    return (
+        <div className="p-6 lg:p-8 flex items-center justify-center min-h-[400px]">
+            <div className="max-w-md w-full bg-white rounded-2xl border border-blue-200 shadow-sm p-8 text-center">
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-7 h-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+                <h2 className="text-lg font-bold text-slate-900 mb-3">{t('gate.no_subscription.title')}</h2>
+                <p className="text-slate-600 text-sm leading-relaxed mb-6">{t('gate.no_subscription.desc')}</p>
+                <Link
+                    href="/dashboard/settings"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors text-sm"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {t('gate.no_subscription.go_settings')}
+                </Link>
+            </div>
+        </div>
+    );
+}
+
+// ---- Main dashboard layout ----
+
 export default function DashboardLayout({ user, profile, subscription, children }: DashboardLayoutProps) {
     const locale = useLocale();
     const router = useRouter();
@@ -182,6 +281,26 @@ export default function DashboardLayout({ user, profile, subscription, children 
     const isRejected = profile?.status === 'rejected';
     const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
     const subscriptionBanner = getSubscriptionBanner(subscription, dashLang as 'en' | 'fr' | 'ar');
+
+    // --- Access gates ---
+    // Rejected accounts: full-page block, no navigation allowed
+    if (isRejected) {
+        return <RejectedGate onSignOut={handleSignOut} t={t} />;
+    }
+
+    // Pending accounts: full-page block, redirect to settings is the only action
+    if (isPending) {
+        return <PendingGate onSignOut={handleSignOut} t={t} locale={locale} />;
+    }
+
+    // Active account but no active subscription:
+    // Only /dashboard/settings (and /dashboard/notifications, /dashboard) are reachable.
+    // All other paths render the subscription-required block inside the normal layout shell.
+    const isRestrictedPath = isApproved && !hasActiveSubscription;
+    const ALLOWED_WITHOUT_SUBSCRIPTION = ['/dashboard', '/dashboard/settings', '/dashboard/notifications'];
+    const isOnAllowedPath = ALLOWED_WITHOUT_SUBSCRIPTION.some(
+        (allowed) => pathname === allowed || (allowed !== '/dashboard' && pathname.startsWith(allowed))
+    );
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row" dir={dir}>
@@ -240,7 +359,10 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                     {navigation.map((item) => {
                                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                                         const Icon = item.icon;
-                                        const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/notifications'].includes(item.href);
+                                        const isDisabled = (
+                                            (!isApproved || isRestrictedPath) &&
+                                            !ALLOWED_WITHOUT_SUBSCRIPTION.includes(item.href)
+                                        );
                                         let labelKey = '';
                                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
                                         else if (item.href === '/dashboard/notifications') labelKey = 'dashboard.nav.notifications';
@@ -375,7 +497,10 @@ export default function DashboardLayout({ user, profile, subscription, children 
                     {navigation.map((item) => {
                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                         const Icon = item.icon;
-                        const isDisabled = !isApproved && !['/dashboard', '/dashboard/settings', '/dashboard/notifications'].includes(item.href);
+                        const isDisabled = (
+                            (!isApproved || isRestrictedPath) &&
+                            !ALLOWED_WITHOUT_SUBSCRIPTION.includes(item.href)
+                        );
 
                         // Map href to translation key
                         let labelKey = '';
@@ -386,11 +511,14 @@ export default function DashboardLayout({ user, profile, subscription, children 
                         else if (item.href === '/dashboard/settings') labelKey = 'dashboard.nav.settings';
 
                         if (isDisabled) {
+                            const lockTitle = isRestrictedPath
+                                ? t('gate.no_subscription.title')
+                                : t('dashboard.nav.approval_required');
                             return (
                                 <div
                                     key={item.name}
                                     className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium text-slate-400 cursor-not-allowed"
-                                    title={t('dashboard.nav.approval_required')}
+                                    title={lockTitle}
                                 >
                                     <Icon />
                                     {labelKey ? t(labelKey) : item.name}
@@ -534,7 +662,11 @@ export default function DashboardLayout({ user, profile, subscription, children 
                             </div>
                         </div>
                     )}
-                    {children}
+                    {/* Gate: if active account but no subscription, block non-settings pages */}
+                    {isRestrictedPath && !isOnAllowedPath
+                        ? <SubscriptionRequiredBlock t={t} />
+                        : children
+                    }
                 </main>
             </div>
         </div>

@@ -520,5 +520,17 @@
                 "owner": "Propriétaire"
             }
         }
+    },
+    "AccessGate": {
+        "rejected_title": "Compte Rejeté",
+        "rejected_desc": "Votre demande de compte a été rejetée. Veuillez contacter notre équipe de support pour plus d'informations.",
+        "rejected_contact": "Contacter le Support",
+        "pending_title": "Compte en Cours de Vérification",
+        "pending_desc": "Votre compte est en cours d'examen par notre équipe. Vous serez notifié une fois approuvé.",
+        "pending_hint": "Cela prend généralement 24 à 48 heures. Assurez-vous que votre profil et votre reçu de paiement sont complets dans Paramètres.",
+        "pending_go_settings": "Aller aux Paramètres",
+        "no_subscription_title": "Abonnement Requis",
+        "no_subscription_desc": "Un abonnement actif est requis pour accéder à cette page. Veuillez aller dans Paramètres pour choisir un pack et téléverser votre reçu.",
+        "no_subscription_go_settings": "Aller aux Paramètres"
     }
 }

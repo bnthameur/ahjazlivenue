@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Link } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/LanguageProvider';
+import { SubscriptionRequiredBlock } from '@/app/[locale]/dashboard/DashboardLayout';
 import { Emoji } from 'react-apple-emojis';
 
 type VenueCard = {
@@ -53,12 +54,21 @@ export default function VenuesPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>(searchParams.get('status') || 'all');
     const [subscription, setSubscription] = useState<SubscriptionSummary>(null);
+    const [profileStatus, setProfileStatus] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchVenues = async () => {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
+
+                // Fetch profile status for second-layer gate check
+                const { data: profileData } = await supabase
+                    .from('profiles')
+                    .select('status')
+                    .eq('id', user.id)
+                    .single();
+                setProfileStatus(profileData?.status ?? null);
 
                 const { data: subscriptionData } = await supabase
                     .from('user_subscriptions')
@@ -121,6 +131,14 @@ export default function VenuesPage() {
                 <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" />
             </div>
         );
+    }
+
+    // Second-layer gate: block if profile is not active or no active subscription
+    if (profileStatus !== null && profileStatus !== 'active') {
+        return <SubscriptionRequiredBlock t={t} />;
+    }
+    if (!hasPaidSubscription) {
+        return <SubscriptionRequiredBlock t={t} />;
     }
 
     return (
