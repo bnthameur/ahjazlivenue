@@ -17,7 +17,6 @@ interface DashboardStats {
 
 interface UserProfile {
     full_name: string | null;
-    status: 'pending' | 'active' | 'rejected';
 }
 
 export default function DashboardPage() {
@@ -42,7 +41,7 @@ export default function DashboardPage() {
                 // Fetch Profile
                 const { data: profileData } = await supabase
                     .from('profiles')
-                    .select('full_name, status')
+                    .select('full_name')
                     .eq('id', user.id)
                     .single();
 
@@ -118,9 +117,6 @@ export default function DashboardPage() {
         fetchData();
     }, [supabase]);
 
-    const isApproved = profile?.status === 'active';
-    const isPending = profile?.status === 'pending';
-    const isRejected = profile?.status === 'rejected';
     const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
     const currentLocale = useLocale();
     const subscriptionBanner = getSubscriptionBanner(subscription, currentLocale as 'en' | 'fr' | 'ar');
@@ -150,63 +146,7 @@ export default function DashboardPage() {
                     </p>
                 </div>
 
-                {/* Pending Approval Notice */}
-                {isPending && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mb-8 p-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl"
-                    >
-                        <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0">
-                                <Emoji name="hourglass-not-done" width={48} />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-amber-800 mb-1">{t('status.pending')}</h3>
-                                <p className="text-amber-700">
-                                    {t('status.pending_desc')}
-                                </p>
-                                <div className="mt-4">
-                                    <Link
-                                        href="/dashboard/settings"
-                                        className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-700"
-                                    >
-                                        {t('actions.settings_title')}
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* Rejected Notice */}
-                {isRejected && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mb-8 p-6 bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl"
-                    >
-                        <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center text-2xl">
-                                <Emoji name="cross-mark" width={24} />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-red-800 mb-1">{t('status.rejected')}</h3>
-                                <p className="text-red-700 mb-3">
-                                    {t('status.rejected_desc')}
-                                </p>
-                                <a
-                                    href="mailto:support@ahjazliqaati.dz"
-                                    className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
-                                >
-                                    {t('actions.settings_title')}
-                                </a>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-
-                {isApproved && subscriptionBanner && (
+                {subscriptionBanner && (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -248,9 +188,8 @@ export default function DashboardPage() {
                     </motion.div>
                 )}
 
-                {/* Stats Grid - Only for approved users */}
-                {isApproved && (
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                         <div className="bg-white border border-slate-200 rounded-xl p-4">
                             <div className="flex items-center gap-3">
                                 <div className="flex-shrink-0">
@@ -296,12 +235,11 @@ export default function DashboardPage() {
                             </div>
                         </div>
                     </div>
-                )}
 
                 {/* Quick Actions */}
                 <h2 className="text-lg font-bold text-slate-900 mb-4">{t('actions.add_title')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {isApproved && hasActiveSubscription && (
+                    {hasActiveSubscription && (
                         <Link href="/dashboard/venues/new">
                             <motion.div
                                 whileHover={{ scale: 1.02 }}
@@ -318,10 +256,10 @@ export default function DashboardPage() {
                         </Link>
                     )}
 
-                    <Link href={isApproved ? "/dashboard/venues" : "#"}>
+                    <Link href="/dashboard/venues">
                         <motion.div
-                            whileHover={isApproved ? { scale: 1.02 } : {}}
-                            className={`bg-white border border-slate-200 rounded-2xl p-6 ${isApproved ? 'cursor-pointer hover:border-slate-300' : 'opacity-50 cursor-not-allowed'} transition-colors`}
+                            whileHover={{ scale: 1.02 }}
+                            className="bg-white border border-slate-200 rounded-2xl p-6 cursor-pointer hover:border-slate-300 transition-colors"
                         >
                             <div className="flex items-center gap-4 mb-4">
                                 <Emoji name="classical-building" width={48} />
@@ -331,10 +269,10 @@ export default function DashboardPage() {
                         </motion.div>
                     </Link>
 
-                    <Link href={isApproved ? "/dashboard/inquiries" : "#"}>
+                    <Link href="/dashboard/inquiries">
                         <motion.div
-                            whileHover={isApproved ? { scale: 1.02 } : {}}
-                            className={`bg-white border border-slate-200 rounded-2xl p-6 ${isApproved ? 'cursor-pointer hover:border-slate-300' : 'opacity-50 cursor-not-allowed'} transition-colors`}
+                            whileHover={{ scale: 1.02 }}
+                            className="bg-white border border-slate-200 rounded-2xl p-6 cursor-pointer hover:border-slate-300 transition-colors"
                         >
                             <div className="flex items-center gap-4 mb-4">
                                 <Emoji name="speech-balloon" width={48} />

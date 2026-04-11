@@ -96,7 +96,6 @@ export default function SettingsClient({ profile, subscription, plans, receipts,
 
     const completedItems = profileCompletionItems.filter((item) => item.done).length;
     const currentPlan = subscription?.subscription_plans || null;
-    const isPendingAccount = profile?.status === 'pending';
 
     const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
         try {
@@ -160,11 +159,6 @@ export default function SettingsClient({ profile, subscription, plans, receipts,
         }
     };
 
-    const step1Done = completedItems === profileCompletionItems.length;
-    const step2Done = Boolean(currentPlan);
-    const step3Done = receipts.length > 0;
-    const stepsCompleted = [step1Done, step2Done, step3Done].filter(Boolean).length;
-
     return (
         <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
@@ -178,40 +172,6 @@ export default function SettingsClient({ profile, subscription, plans, receipts,
                         <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{t('settings.title')}</h1>
                         <p className="mt-1 text-slate-500">{t('settings.desc')}</p>
                     </div>
-
-                    {/* Onboarding Banner (pending accounts) */}
-                    {isPendingAccount && (
-                        <div className="mb-8 rounded-2xl bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border border-amber-200/60 p-5 sm:p-6">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 text-amber-600 text-sm font-bold">{stepsCompleted}/3</div>
-                                <div className="flex-1 h-2 rounded-full bg-amber-100 overflow-hidden">
-                                    <div className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-500" style={{ width: `${(stepsCompleted / 3) * 100}%` }} />
-                                </div>
-                            </div>
-                            <h2 className="text-lg font-bold text-slate-900 mb-1">{t('settings.pending.title')}</h2>
-                            <p className="text-sm text-slate-600 mb-5">{t('settings.pending.desc')}</p>
-                            <div className="grid gap-3 sm:grid-cols-3">
-                                {[
-                                    { done: step1Done, label: t('settings.pending.step1'), detail: `${completedItems}/${profileCompletionItems.length} ${t('settings.pending.fields_done')}` },
-                                    { done: step2Done, label: t('settings.pending.step2'), detail: currentPlan?.name || t('settings.pending.no_pack') },
-                                    { done: step3Done, label: t('settings.pending.step3'), detail: receipts.length > 0 ? `${receipts.length} ${t('settings.pending.receipt_submitted')}` : t('settings.pending.no_receipt') },
-                                ].map((step, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setActiveTab(i === 0 ? 'profile' : 'billing')}
-                                        className={`rounded-xl border p-4 text-left transition-all hover:shadow-sm ${step.done ? 'border-green-200 bg-green-50/80' : 'border-white/80 bg-white/90 hover:border-amber-200'}`}
-                                    >
-                                        <div className="flex items-center justify-between mb-1">
-                                            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">{t('settings.pending.step')} {i + 1}</span>
-                                            {step.done && <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>}
-                                        </div>
-                                        <p className="text-sm font-semibold text-slate-900">{step.label}</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">{step.detail}</p>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Tab Switcher */}
                     <div className="flex gap-1 p-1 mb-6 rounded-xl bg-slate-100 w-fit">

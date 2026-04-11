@@ -54,21 +54,12 @@ export default function VenuesPage() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>(searchParams.get('status') || 'all');
     const [subscription, setSubscription] = useState<SubscriptionSummary>(null);
-    const [profileStatus, setProfileStatus] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchVenues = async () => {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
-
-                // Fetch profile status for second-layer gate check
-                const { data: profileData } = await supabase
-                    .from('profiles')
-                    .select('status')
-                    .eq('id', user.id)
-                    .single();
-                setProfileStatus(profileData?.status ?? null);
 
                 const { data: subscriptionData } = await supabase
                     .from('user_subscriptions')
@@ -133,10 +124,7 @@ export default function VenuesPage() {
         );
     }
 
-    // Second-layer gate: block if profile is not active or no active subscription
-    if (profileStatus !== null && profileStatus !== 'active') {
-        return <SubscriptionRequiredBlock t={t} />;
-    }
+    // Gate: block if no active subscription
     if (!hasPaidSubscription) {
         return <SubscriptionRequiredBlock t={t} />;
     }

@@ -41,7 +41,6 @@ export default function InquiriesPage() {
     const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
     const [filter, setFilter] = useState('all');
     const [loading, setLoading] = useState(true);
-    const [profileStatus, setProfileStatus] = useState<string | null>(null);
     const [subscription, setSubscription] = useState<UserSubscriptionSummary | null>(null);
 
     useEffect(() => {
@@ -53,14 +52,6 @@ export default function InquiriesPage() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-
-            // Second-layer gate: fetch profile status and subscription
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select('status')
-                .eq('id', user.id)
-                .single();
-            setProfileStatus(profileData?.status ?? null);
 
             const { data: subData } = await supabase
                 .from('user_subscriptions')
@@ -190,10 +181,7 @@ export default function InquiriesPage() {
         );
     }
 
-    // Second-layer gate: block if profile is not active or no active subscription
-    if (profileStatus !== null && profileStatus !== 'active') {
-        return <SubscriptionRequiredBlock t={t} />;
-    }
+    // Gate: block if no active subscription
     if (!hasActiveOwnerSubscription(subscription)) {
         return <SubscriptionRequiredBlock t={t} />;
     }
