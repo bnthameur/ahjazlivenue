@@ -128,23 +128,12 @@ export async function POST(request: Request) {
         .limit(1)
         .maybeSingle();
 
-    // Check active subscription
-    const subStatus = (subscriptionData?.status || "").toLowerCase();
-    const isActiveSubscription = ["active", "trial"].includes(subStatus);
-    const expiresAt = subscriptionData?.expires_at ? new Date(subscriptionData.expires_at) : null;
-    const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
-
-    if (!subscriptionData || !isActiveSubscription || isExpired) {
-        return NextResponse.json(
-            { error: "Active subscription required. Please subscribe to a plan first." },
-            { status: 402 }
-        );
-    }
-
-    // Check venue count limit
-    const plan = Array.isArray(subscriptionData.subscription_plans)
-        ? subscriptionData.subscription_plans[0]
-        : subscriptionData.subscription_plans;
+    // Plan limits (use defaults if no subscription)
+    const plan = subscriptionData
+        ? (Array.isArray(subscriptionData.subscription_plans)
+            ? subscriptionData.subscription_plans[0]
+            : subscriptionData.subscription_plans)
+        : null;
     const maxVenues = plan?.max_venues ?? 1;
 
     const { count: venueCount } = await supabase

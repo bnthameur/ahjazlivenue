@@ -1462,28 +1462,6 @@ export default function NewVenuePage() {
         );
     }
 
-    // Block: No active subscription
-    if (!hasActiveSub) {
-        return (
-            <div className="min-h-screen bg-slate-50/50 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 p-8 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-50 flex items-center justify-center">
-                        <AlertCircle className="w-8 h-8 text-red-500" />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">{t('NewVenue.subscription_required_title')}</h2>
-                    <p className="text-sm text-slate-600 mb-6">{t('NewVenue.subscription_required_desc')}</p>
-                    <Link
-                        href="/dashboard/settings"
-                        prefetch={true}
-                        className="block w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors text-center"
-                    >
-                        {t('NewVenue.go_to_settings')}
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-
     // Block: Venue limit reached
     if (currentVenueCount >= planLimits.maxVenues) {
         return (

@@ -212,13 +212,8 @@ export default function DashboardLayout({ user, profile, subscription, children 
     const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
     const subscriptionBanner = getSubscriptionBanner(subscription, dashLang as 'en' | 'fr' | 'ar');
 
-    // Subscription gate: if no active subscription, only settings/notifications/home are reachable.
-    // Account approval no longer blocks dashboard access — admin approves venues, not accounts.
-    const isRestrictedPath = !hasActiveSubscription;
-    const ALLOWED_WITHOUT_SUBSCRIPTION = ['/dashboard', '/dashboard/settings', '/dashboard/notifications'];
-    const isOnAllowedPath = ALLOWED_WITHOUT_SUBSCRIPTION.some(
-        (allowed) => pathname === allowed || (allowed !== '/dashboard' && pathname.startsWith(allowed))
-    );
+    // No page-level blocking — venue owners can access all pages.
+    // Admin approves venues, not accounts. Subscription status shown as banner only.
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row" dir={dir}>
@@ -258,18 +253,12 @@ export default function DashboardLayout({ user, profile, subscription, children 
                                     {navigation.map((item) => {
                                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                                         const Icon = item.icon;
-                                        const isDisabled = (
-                                            isRestrictedPath &&
-                                            !ALLOWED_WITHOUT_SUBSCRIPTION.includes(item.href)
-                                        );
                                         let labelKey = '';
                                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
                                         else if (item.href === '/dashboard/notifications') labelKey = 'dashboard.nav.notifications';
                                         else if (item.href === '/dashboard/venues') labelKey = 'dashboard.nav.venues';
                                         else if (item.href === '/dashboard/inquiries') labelKey = 'dashboard.nav.inquiries';
                                         else if (item.href === '/dashboard/settings') labelKey = 'dashboard.nav.settings';
-
-                                        if (isDisabled) return null; // Simplified for mobile view to just hide disabled or show lock? Let's show lock
 
                                         return (
                                             <Link
@@ -370,11 +359,6 @@ export default function DashboardLayout({ user, profile, subscription, children 
                     {navigation.map((item) => {
                         const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
                         const Icon = item.icon;
-                        const isDisabled = (
-                            isRestrictedPath &&
-                            !ALLOWED_WITHOUT_SUBSCRIPTION.includes(item.href)
-                        );
-
                         // Map href to translation key
                         let labelKey = '';
                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
@@ -382,21 +366,6 @@ export default function DashboardLayout({ user, profile, subscription, children 
                         else if (item.href === '/dashboard/venues') labelKey = 'dashboard.nav.venues';
                         else if (item.href === '/dashboard/inquiries') labelKey = 'dashboard.nav.inquiries';
                         else if (item.href === '/dashboard/settings') labelKey = 'dashboard.nav.settings';
-
-                        if (isDisabled) {
-                            const lockTitle = t('gate.no_subscription.title');
-                            return (
-                                <div
-                                    key={item.name}
-                                    className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium text-slate-400 cursor-not-allowed"
-                                    title={lockTitle}
-                                >
-                                    <Icon />
-                                    {labelKey ? t(labelKey) : item.name}
-                                    <span className="ml-auto text-xs"><Emoji name="locked" width={12} /></span>
-                                </div>
-                            );
-                        }
 
                         return (
                             <Link
@@ -426,20 +395,18 @@ export default function DashboardLayout({ user, profile, subscription, children 
                 </nav>
 
                 {/* Add Venue Button */}
-                {hasActiveSubscription && (
-                    <div className="p-3 border-t border-slate-100">
-                        <Link
-                            href="/dashboard/venues/new"
-                            prefetch={true}
-                            className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded transition-colors"
-                        >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            {t('dashboard.btn.add_venue')}
-                        </Link>
-                    </div>
-                )}
+                <div className="p-3 border-t border-slate-100">
+                    <Link
+                        href="/dashboard/venues/new"
+                        prefetch={true}
+                        className="flex items-center justify-center gap-1.5 w-full px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-medium rounded transition-colors"
+                    >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        {t('dashboard.btn.add_venue')}
+                    </Link>
+                </div>
             </aside>
 
             {/* Main Content */}
@@ -553,11 +520,7 @@ export default function DashboardLayout({ user, profile, subscription, children 
                             </div>
                         </div>
                     )}
-                    {/* Gate: if no subscription, block non-settings pages */}
-                    {isRestrictedPath && !isOnAllowedPath
-                        ? <SubscriptionRequiredBlock t={t} />
-                        : children
-                    }
+                    {children}
                 </main>
             </div>
         </div>

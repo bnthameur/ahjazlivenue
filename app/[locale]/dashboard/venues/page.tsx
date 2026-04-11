@@ -114,7 +114,7 @@ export default function VenuesPage() {
     const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
     const hasPaidSubscription = subscription && isActiveSub && !isExpired;
     const maxVenues = typeof plan?.max_venues === 'number' ? plan.max_venues : null;
-    const canAddMore = hasPaidSubscription ? (maxVenues == null ? true : venues.length < maxVenues) : false;
+    const canAddMore = maxVenues == null ? true : venues.length < maxVenues;
 
     if (loading) {
         return (
@@ -122,11 +122,6 @@ export default function VenuesPage() {
                 <div className="animate-spin h-8 w-8 border-4 border-primary-600 border-t-transparent rounded-full" />
             </div>
         );
-    }
-
-    // Gate: block if no active subscription
-    if (!hasPaidSubscription) {
-        return <SubscriptionRequiredBlock t={t} />;
     }
 
     return (

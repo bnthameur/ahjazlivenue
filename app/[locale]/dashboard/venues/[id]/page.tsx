@@ -469,28 +469,6 @@ export default function EditVenuePage() {
         );
     }
 
-    // Block editing if subscription is inactive/expired
-    if (!hasActiveSub) {
-        return (
-            <div className="p-6 lg:p-8 max-w-4xl mx-auto">
-                <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-100 flex items-center justify-center">
-                        <AlertCircle className="w-8 h-8 text-red-500" />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-900 mb-2">{te('sub_required_title')}</h2>
-                    <p className="text-sm text-slate-600 mb-6">{te('sub_required_desc')}</p>
-                    <Link
-                        href="/dashboard/settings"
-                        prefetch={true}
-                        className="inline-block px-6 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
-                    >
-                        {te('go_to_settings')}
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-
     // --- Tab Content ---
 
     const renderOverviewTab = () => (

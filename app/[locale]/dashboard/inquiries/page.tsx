@@ -181,11 +181,6 @@ export default function InquiriesPage() {
         );
     }
 
-    // Gate: block if no active subscription
-    if (!hasActiveOwnerSubscription(subscription)) {
-        return <SubscriptionRequiredBlock t={t} />;
-    }
-
     return (
         <div className="p-6 lg:p-8">
             <motion.div
