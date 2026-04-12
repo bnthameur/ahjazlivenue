@@ -141,7 +141,63 @@ CREATE TABLE IF NOT EXISTS public.contact_inquiries (
 );
 
 -- ===========================================
--- 7. ADMIN ACTIVITY LOGS
+-- 7. SUBSCRIPTION PLANS
+-- ===========================================
+CREATE TABLE IF NOT EXISTS public.subscription_plans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT,
+    name_ar TEXT,
+    name_fr TEXT,
+    price_monthly DECIMAL(12,2),
+    price_yearly DECIMAL(12,2),
+    duration_months INT DEFAULT 1,
+    max_venues INT DEFAULT 1,
+    max_images_per_venue INT DEFAULT 5,
+    max_videos_per_venue INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ===========================================
+-- 8. USER SUBSCRIPTIONS
+-- ===========================================
+CREATE TABLE IF NOT EXISTS public.user_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    plan_id UUID REFERENCES public.subscription_plans(id) ON DELETE SET NULL,
+    status TEXT CHECK (status IN ('pending', 'active', 'expired', 'cancelled', 'trial')) DEFAULT 'pending',
+    started_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ===========================================
+-- 9. PAYMENT RECEIPTS
+-- ===========================================
+CREATE TABLE IF NOT EXISTS public.payment_receipts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    receipt_url TEXT,
+    payment_method TEXT,
+    amount DECIMAL(12,2),
+    status TEXT CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+    admin_note TEXT,
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ===========================================
+-- 10. PLATFORM SETTINGS (key-value config)
+-- ===========================================
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ===========================================
+-- 11. ADMIN ACTIVITY LOGS
 -- ===========================================
 CREATE TABLE IF NOT EXISTS public.admin_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -167,6 +223,10 @@ CREATE INDEX IF NOT EXISTS idx_venue_media_venue ON public.venue_media(venue_id)
 CREATE INDEX IF NOT EXISTS idx_inquiries_venue ON public.contact_inquiries(venue_id);
 CREATE INDEX IF NOT EXISTS idx_inquiries_owner ON public.contact_inquiries(owner_id);
 CREATE INDEX IF NOT EXISTS idx_inquiries_status ON public.contact_inquiries(status);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_user ON public.user_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_status ON public.user_subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_payment_receipts_user ON public.payment_receipts(user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_receipts_status ON public.payment_receipts(status);
 
 -- ===========================================
 -- ROW LEVEL SECURITY (RLS)
@@ -178,6 +238,10 @@ ALTER TABLE public.venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.venue_media ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_inquiries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subscription_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_receipts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
 
 -- ===========================================
 -- RLS POLICIES: PROFILES
@@ -302,8 +366,65 @@ CREATE POLICY "Admin can view logs" ON public.admin_logs
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
     );
 
-CREATE POLICY "Admin can create logs" ON public.admin_logs 
+CREATE POLICY "Admin can create logs" ON public.admin_logs
     FOR INSERT WITH CHECK (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    );
+
+-- ===========================================
+-- RLS POLICIES: SUBSCRIPTION PLANS
+-- ===========================================
+CREATE POLICY "Anyone can view active plans" ON public.subscription_plans
+    FOR SELECT USING (is_active = true);
+
+CREATE POLICY "Admin can manage plans" ON public.subscription_plans
+    FOR ALL USING (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    );
+
+-- ===========================================
+-- RLS POLICIES: USER SUBSCRIPTIONS
+-- ===========================================
+CREATE POLICY "Users can view own subscriptions" ON public.user_subscriptions
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Admin can view all subscriptions" ON public.user_subscriptions
+    FOR SELECT USING (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    );
+
+CREATE POLICY "Admin can manage subscriptions" ON public.user_subscriptions
+    FOR ALL USING (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    );
+
+-- ===========================================
+-- RLS POLICIES: PAYMENT RECEIPTS
+-- ===========================================
+CREATE POLICY "Users can view own receipts" ON public.payment_receipts
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own receipts" ON public.payment_receipts
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Admin can view all receipts" ON public.payment_receipts
+    FOR SELECT USING (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    );
+
+CREATE POLICY "Admin can update receipts" ON public.payment_receipts
+    FOR UPDATE USING (
+        EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
+    );
+
+-- ===========================================
+-- RLS POLICIES: PLATFORM SETTINGS
+-- ===========================================
+CREATE POLICY "Authenticated users can read settings" ON public.platform_settings
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Admin can manage settings" ON public.platform_settings
+    FOR ALL USING (
         EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
     );
 
