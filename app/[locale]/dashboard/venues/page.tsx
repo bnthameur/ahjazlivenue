@@ -7,6 +7,7 @@ import { Link } from '@/i18n/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/components/LanguageProvider';
 import { SubscriptionRequiredBlock } from '@/app/[locale]/dashboard/DashboardLayout';
+import { useFreeMode } from '@/components/PlatformModeProvider';
 import { Emoji } from 'react-apple-emojis';
 
 type VenueCard = {
@@ -49,6 +50,7 @@ const statusColors = {
 export default function VenuesPage() {
     const supabase = createClient();
     const { t } = useLanguage();
+    const freeMode = useFreeMode();
     const searchParams = useSearchParams();
     const [venues, setVenues] = useState<VenueCard[]>([]);
     const [loading, setLoading] = useState(true);
@@ -113,7 +115,7 @@ export default function VenuesPage() {
     const expiresAt = subscription?.expires_at ? new Date(subscription.expires_at) : null;
     const isExpired = expiresAt ? expiresAt.getTime() < Date.now() : false;
     const hasPaidSubscription = subscription && isActiveSub && !isExpired;
-    const maxVenues = typeof plan?.max_venues === 'number' ? plan.max_venues : null;
+    const maxVenues = !freeMode && typeof plan?.max_venues === 'number' ? plan.max_venues : null;
     const canAddMore = maxVenues == null ? true : venues.length < maxVenues;
 
     if (loading) {
@@ -169,13 +171,15 @@ export default function VenuesPage() {
                     </div>
                     <div className="rounded-2xl border border-slate-200 bg-slate-900 p-5 text-white">
                         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t('venues.plan_capacity')}</p>
-                        <p className="mt-1 text-2xl font-bold">{venues.length}{maxVenues == null ? '' : ` / ${maxVenues}`}</p>
+                        <p className="mt-1 text-2xl font-bold">{venues.length}{freeMode ? ' / ∞' : maxVenues == null ? '' : ` / ${maxVenues}`}</p>
                         <p className="mt-2 text-sm text-slate-300">
-                            {maxVenues == null
-                                ? t('venues.choose_pack')
-                                : canAddMore
-                                    ? t('venues.can_add_more')
-                                    : t('venues.limit_reached')}
+                            {freeMode
+                                ? t('venues.free_unlimited')
+                                : maxVenues == null
+                                    ? t('venues.choose_pack')
+                                    : canAddMore
+                                        ? t('venues.can_add_more')
+                                        : t('venues.limit_reached')}
                         </p>
                     </div>
                 </div>

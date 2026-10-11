@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Emoji } from 'react-apple-emojis';
 import { useTranslations } from 'next-intl';
 import { updatePlatformSetting, toggleVenueFeatured } from '../actions';
+import { FREE_MODE_SETTING_KEY } from '@/lib/platform-mode';
 
 interface PlatformSetting {
     key: string;
@@ -109,6 +110,16 @@ export default function AdminSettingsClient({ settings, venues, stats }: AdminSe
     const getBool = (key: string) => settingsMap[key] === 'true';
     const getString = (key: string, fallback = '') => settingsMap[key] ?? fallback;
 
+    const freeMode = getBool(FREE_MODE_SETTING_KEY);
+
+    const handleFreeModeToggle = async () => {
+        const message = freeMode
+            ? 'Switch the platform back to PAID?\n\nPlan limits, payment banners and the billing page come back for every venue owner.'
+            : 'Make the whole platform FREE?\n\nEvery venue owner gets unlimited venues, photos and videos, and no payment is asked.';
+        if (!window.confirm(message)) return;
+        await handleToggle(FREE_MODE_SETTING_KEY, freeMode ? 'true' : 'false');
+    };
+
     return (
         <>
             {/* Toast */}
@@ -131,6 +142,44 @@ export default function AdminSettingsClient({ settings, venues, stats }: AdminSe
                     </h1>
                     <p className="text-slate-500 mt-1 text-sm">Configure platform settings and manage features</p>
                 </div>
+
+                {/* Platform Mode: Free / Paid */}
+                <section className={`rounded-xl border overflow-hidden ${freeMode ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200'}`}>
+                    <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+                        <Emoji name={freeMode ? 'wrapped-gift' : 'money-bag'} width={18} />
+                        <h2 className="font-semibold text-slate-800">Platform Mode</h2>
+                    </div>
+                    <div className="p-5 flex items-center justify-between gap-4">
+                        <div>
+                            <p className="font-medium text-slate-800">
+                                {freeMode ? 'Free — no restrictions for anyone' : 'Paid — plans and limits apply'}
+                            </p>
+                            <p className="text-sm text-slate-500 mt-0.5">
+                                {freeMode
+                                    ? 'All venue owners have unlimited venues, photos and videos. Payment banners and the billing page are hidden.'
+                                    : 'Venue owners need an active pack. Plan limits on venues, photos and videos are enforced.'}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                            <span className={`text-xs font-semibold uppercase tracking-wide ${freeMode ? 'text-slate-400' : 'text-slate-800'}`}>Paid</span>
+                            <button
+                                onClick={handleFreeModeToggle}
+                                disabled={savingKey === FREE_MODE_SETTING_KEY}
+                                role="switch"
+                                aria-checked={freeMode}
+                                aria-label="Free platform mode"
+                                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+                                    freeMode ? 'bg-green-500' : 'bg-slate-200'
+                                } ${savingKey === FREE_MODE_SETTING_KEY ? 'opacity-50' : ''}`}
+                            >
+                                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transform ring-0 transition ease-in-out duration-200 ${
+                                    freeMode ? 'translate-x-5' : 'translate-x-0'
+                                }`} />
+                            </button>
+                            <span className={`text-xs font-semibold uppercase tracking-wide ${freeMode ? 'text-green-700' : 'text-slate-400'}`}>Free</span>
+                        </div>
+                    </div>
+                </section>
 
                 {/* Platform Stats Summary */}
                 <section className="bg-white rounded-xl border border-slate-200 overflow-hidden">

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { getPlatformFreeMode } from "@/lib/platform-mode-server";
 
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
@@ -110,47 +111,53 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Only venue owners can create venues" }, { status: 403 });
     }
 
-    if (profile.status !== "active") {
+    // Free platform mode (admin switch): pending accounts may publish too — only rejected ones stay blocked.
+    const freeMode = await getPlatformFreeMode();
+
+    if (profile.status === "rejected" || (!freeMode && profile.status !== "active")) {
         return NextResponse.json({ error: "Your account is not approved yet" }, { status: 403 });
     }
 
-    // --- Subscription & plan limit enforcement (anti-hack) ---
-    const { data: subscriptionData } = await supabase
-        .from("user_subscriptions")
-        .select(`
-            id, status, expires_at,
-            subscription_plans (
-                id, max_venues, max_images_per_venue, max_videos_per_venue
-            )
-        `)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    // --- Subscription & plan limit enforcement (anti-hack) — skipped in free mode ---
+    let maxImages = Infinity;
 
-    // Plan limits (use defaults if no subscription)
-    const plan = subscriptionData
-        ? (Array.isArray(subscriptionData.subscription_plans)
-            ? subscriptionData.subscription_plans[0]
-            : subscriptionData.subscription_plans)
-        : null;
-    const maxVenues = plan?.max_venues ?? 1;
+    if (!freeMode) {
+        const { data: subscriptionData } = await supabase
+            .from("user_subscriptions")
+            .select(`
+                id, status, expires_at,
+                subscription_plans (
+                    id, max_venues, max_images_per_venue, max_videos_per_venue
+                )
+            `)
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-    const { count: venueCount } = await supabase
-        .from("venues")
-        .select("*", { count: "exact", head: true })
-        .eq("owner_id", user.id);
+        // Plan limits (use defaults if no subscription)
+        const plan = subscriptionData
+            ? (Array.isArray(subscriptionData.subscription_plans)
+                ? subscriptionData.subscription_plans[0]
+                : subscriptionData.subscription_plans)
+            : null;
+        const maxVenues = plan?.max_venues ?? 1;
 
-    if ((venueCount || 0) >= maxVenues) {
-        return NextResponse.json(
-            { error: `Venue limit reached. Your plan allows ${maxVenues} venue(s).` },
-            { status: 403 }
-        );
+        const { count: venueCount } = await supabase
+            .from("venues")
+            .select("*", { count: "exact", head: true })
+            .eq("owner_id", user.id);
+
+        if ((venueCount || 0) >= maxVenues) {
+            return NextResponse.json(
+                { error: `Venue limit reached. Your plan allows ${maxVenues} venue(s).` },
+                { status: 403 }
+            );
+        }
+
+        // Check image count limit
+        maxImages = plan?.max_images_per_venue ?? 5;
     }
-
-    // Check image count limit
-    const maxImages = plan?.max_images_per_venue ?? 5;
-    const maxVideos = plan?.max_videos_per_venue ?? 0;
 
     try {
         const json = await request.json();

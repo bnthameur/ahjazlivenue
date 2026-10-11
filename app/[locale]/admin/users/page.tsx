@@ -12,11 +12,18 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
     const resolvedParams = await searchParams;
     const statusFilter = (resolvedParams?.status as string) || 'all';
 
-    const { data: users, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'venue_owner')
-        .order('created_at', { ascending: false });
+    const [{ data: users, error }, { data: plans }] = await Promise.all([
+        supabase
+            .from('profiles')
+            .select('*')
+            .eq('role', 'venue_owner')
+            .order('created_at', { ascending: false }),
+        supabase
+            .from('subscription_plans')
+            .select('id, name, name_ar, name_fr, price_monthly, duration_months')
+            .eq('is_active', true)
+            .order('price_monthly', { ascending: true }),
+    ]);
 
     if (error) {
         return (
@@ -26,5 +33,5 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         );
     }
 
-    return <AdminUsersClient initialUsers={users || []} statusFilter={statusFilter} />;
+    return <AdminUsersClient initialUsers={users || []} statusFilter={statusFilter} plans={plans || []} />;
 }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import DashboardLayout from './DashboardLayout';
 import { normalizeSubscriptionSummary } from '@/lib/owner-billing';
+import { getPlatformFreeMode } from '@/lib/platform-mode-server';
 
 export default async function Layout({
     children,
@@ -27,6 +28,8 @@ export default async function Layout({
         .select('*')
         .eq('id', user.id)
         .single();
+
+    const freeModePromise = getPlatformFreeMode();
 
     const { data: subscriptionData } = await supabase
         .from('user_subscriptions')
@@ -53,12 +56,14 @@ export default async function Layout({
         .maybeSingle();
 
     const subscription = normalizeSubscriptionSummary(subscriptionData);
+    const freeMode = await freeModePromise;
 
     return (
         <DashboardLayout
             user={user}
             profile={profile}
             subscription={subscription}
+            freeMode={freeMode}
         >
             {children}
         </DashboardLayout>

@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { Emoji } from 'react-apple-emojis';
 import { getSubscriptionBanner, hasActiveOwnerSubscription, normalizeSubscriptionSummary, type UserSubscriptionSummary } from '@/lib/owner-billing';
+import { useFreeMode } from '@/components/PlatformModeProvider';
 
 interface DashboardStats {
     venuesCount: number;
@@ -22,6 +23,7 @@ interface UserProfile {
 export default function DashboardPage() {
     const supabase = createClient();
     const t = useTranslations('dashboard');
+    const freeMode = useFreeMode();
     const [stats, setStats] = useState<DashboardStats>({
         venuesCount: 0,
         pendingVenues: 0,
@@ -117,9 +119,9 @@ export default function DashboardPage() {
         fetchData();
     }, [supabase]);
 
-    const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
+    const hasActiveSubscription = hasActiveOwnerSubscription(subscription, freeMode);
     const currentLocale = useLocale();
-    const subscriptionBanner = getSubscriptionBanner(subscription, currentLocale as 'en' | 'fr' | 'ar');
+    const subscriptionBanner = getSubscriptionBanner(subscription, currentLocale as 'en' | 'fr' | 'ar', freeMode);
 
     if (loading) {
         return (
@@ -145,6 +147,24 @@ export default function DashboardPage() {
                         {t('welcome.subtitle')}
                     </p>
                 </div>
+
+                {freeMode && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 rounded-2xl border border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 p-6"
+                    >
+                        <div className="flex items-start gap-4">
+                            <div className="flex-shrink-0">
+                                <Emoji name="party-popper" width={44} />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold mb-1 text-green-800">{t('free_mode.title')}</h3>
+                                <p className="text-green-700">{t('free_mode.desc')}</p>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
 
                 {subscriptionBanner && (
                     <motion.div

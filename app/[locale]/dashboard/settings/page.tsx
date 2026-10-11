@@ -4,6 +4,20 @@ import SettingsClient from './SettingsClient';
 import { normalizeSubscriptionSummary } from '@/lib/owner-billing';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+// Only the public payment details the billing UI shows. platform_settings also holds
+// secrets (e.g. slickpay_api_key) that must never be sent to an owner's browser.
+const OWNER_VISIBLE_SETTING_KEYS = [
+    'online_payment_url',
+    'payment_link',
+    'owner_payment_link',
+    'ccp_name',
+    'ccp_number',
+    'ccp_key',
+    'ccp_address',
+    'baridimob_name',
+    'baridimob_rip',
+];
+
 export default async function SettingsPage() {
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
@@ -56,7 +70,7 @@ export default async function SettingsPage() {
             .order('created_at', { ascending: false }),
         // Use the admin client so RLS never silently blocks platform-wide settings
         // that every authenticated owner needs to see (CCP / Baridimob details).
-        createAdminClient().from('platform_settings').select('key, value'),
+        createAdminClient().from('platform_settings').select('key, value').in('key', OWNER_VISIBLE_SETTING_KEYS),
         supabase
             .from('venues')
             .select('*', { count: 'exact', head: true })

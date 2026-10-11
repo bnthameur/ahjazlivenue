@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Emoji } from 'react-apple-emojis';
 import { getSubscriptionBanner, hasActiveOwnerSubscription, type UserSubscriptionSummary } from '@/lib/owner-billing';
+import { PlatformModeProvider } from '@/components/PlatformModeProvider';
 
 interface Profile {
     full_name: string | null;
@@ -24,6 +25,8 @@ interface DashboardLayoutProps {
     user: User;
     profile: Profile | null;
     subscription?: UserSubscriptionSummary | null;
+    /** Admin "free platform" switch — no limits, no payment banners. */
+    freeMode?: boolean;
     children: React.ReactNode;
 }
 
@@ -157,7 +160,7 @@ export function SubscriptionRequiredBlock({ t }: { t: (key: string) => string })
 
 // ---- Main dashboard layout ----
 
-export default function DashboardLayout({ user, profile, subscription, children }: DashboardLayoutProps) {
+export default function DashboardLayout({ user, profile, subscription, freeMode = false, children }: DashboardLayoutProps) {
     const platformGuideUrl = 'https://youtu.be/R_SXIihAGb0';
     const locale = useLocale();
     const router = useRouter();
@@ -209,8 +212,8 @@ export default function DashboardLayout({ user, profile, subscription, children 
     };
 
     const displayName = profile?.full_name || profile?.business_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User';
-    const hasActiveSubscription = hasActiveOwnerSubscription(subscription);
-    const subscriptionBanner = getSubscriptionBanner(subscription, dashLang as 'en' | 'fr' | 'ar');
+    const hasActiveSubscription = hasActiveOwnerSubscription(subscription, freeMode);
+    const subscriptionBanner = getSubscriptionBanner(subscription, dashLang as 'en' | 'fr' | 'ar', freeMode);
 
     // No page-level blocking — venue owners can access all pages.
     // Admin approves venues, not accounts. Subscription status shown as banner only.
@@ -520,7 +523,9 @@ export default function DashboardLayout({ user, profile, subscription, children 
                             </div>
                         </div>
                     )}
-                    {children}
+                    <PlatformModeProvider freeMode={freeMode}>
+                        {children}
+                    </PlatformModeProvider>
                 </main>
             </div>
         </div>

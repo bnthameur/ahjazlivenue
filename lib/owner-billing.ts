@@ -62,7 +62,9 @@ export function daysUntil(value?: string | null): number | null {
     return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
 
-export function hasActiveOwnerSubscription(subscription: UserSubscriptionSummary | null | undefined): boolean {
+// `freeMode` = the admin "free platform" switch (see lib/platform-mode.ts): everyone counts as subscribed.
+export function hasActiveOwnerSubscription(subscription: UserSubscriptionSummary | null | undefined, freeMode = false): boolean {
+    if (freeMode) return true;
     if (!subscription) return false;
     const status = (subscription.status || '').toLowerCase();
     if (!['active', 'trial'].includes(status)) return false;
@@ -85,7 +87,16 @@ const DEFAULT_LIMITS: PlanLimits = {
     isActive: false,
 };
 
-export function getPlanLimits(subscription: UserSubscriptionSummary | null | undefined): PlanLimits {
+export const FREE_MODE_LIMITS: PlanLimits = {
+    maxVenues: Infinity,
+    maxImagesPerVenue: Infinity,
+    maxVideosPerVenue: Infinity,
+    isActive: true,
+};
+
+export function getPlanLimits(subscription: UserSubscriptionSummary | null | undefined, freeMode = false): PlanLimits {
+    if (freeMode) return FREE_MODE_LIMITS;
+
     if (!subscription || !hasActiveOwnerSubscription(subscription)) {
         return DEFAULT_LIMITS;
     }
@@ -132,7 +143,10 @@ const bannerTranslations = {
     },
 };
 
-export function getSubscriptionBanner(subscription: UserSubscriptionSummary | null | undefined, language: 'en' | 'fr' | 'ar' = 'ar') {
+export function getSubscriptionBanner(subscription: UserSubscriptionSummary | null | undefined, language: 'en' | 'fr' | 'ar' = 'ar', freeMode = false) {
+    // Nothing to pay for while the platform is free.
+    if (freeMode) return null;
+
     const t = bannerTranslations[language] || bannerTranslations.ar;
 
     if (!subscription) {

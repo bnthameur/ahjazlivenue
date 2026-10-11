@@ -9,6 +9,7 @@ import { formatBytes } from '@/lib/media-optimizer';
 import { useTranslations, useLocale } from 'next-intl';
 import { WILAYAS, getWilayaLabel, getWilayas } from '@/lib/wilayas';
 import MapPicker from '@/components/MapPicker';
+import { useFreeMode } from '@/components/PlatformModeProvider';
 import {
     Building2,
     PartyPopper,
@@ -358,6 +359,7 @@ export default function NewVenuePage() {
     const t = useTranslations();
     const locale = useLocale();
     const router = useRouter();
+    const freeMode = useFreeMode();
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -388,6 +390,13 @@ export default function NewVenuePage() {
                 const supabaseClient = (await import('@/lib/supabase/client')).createClient();
                 const { data: { user } } = await supabaseClient.auth.getUser();
                 if (!user) { router.push(`/${locale}/dashboard/settings`); return; }
+
+                // Free platform: no plan needed, no venue/media limits
+                if (freeMode) {
+                    setHasActiveSub(true);
+                    setPlanLimits({ maxImages: Infinity, maxVideos: Infinity, maxVenues: Infinity });
+                    return;
+                }
 
                 // Fetch subscription
                 const { data: sub } = await supabaseClient
@@ -431,7 +440,7 @@ export default function NewVenuePage() {
             }
         };
         checkSubscription();
-    }, [locale, router]);
+    }, [locale, router, freeMode]);
 
     const categories = useMemo(() => getCategories(t), [t]);
     const wilayas = useMemo(() => getWilayas(t), [t]);

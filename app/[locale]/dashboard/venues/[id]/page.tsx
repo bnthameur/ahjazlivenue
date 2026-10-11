@@ -9,6 +9,8 @@ import { createClient } from '@/lib/supabase/client';
 import { uploadVenueImages, uploadVenueVideo, deleteVenueVideo, fetchVenueMedia, VenueMediaRecord, VideoUploadProgress } from '@/lib/supabase/storage';
 import { formatBytes } from '@/lib/media-optimizer';
 import MapPicker from '@/components/MapPicker';
+import { useFreeMode } from '@/components/PlatformModeProvider';
+import { formatLimit } from '@/lib/platform-mode';
 import {
     Building2, PartyPopper, Users, TreeDeciduous, Home, Hotel, Utensils, Moon,
     Upload, X, Check, ChevronRight, MapPin, Phone, Mail, Facebook, Instagram,
@@ -255,6 +257,7 @@ export default function EditVenuePage() {
     });
     const [planLimits, setPlanLimits] = useState<{ maxImages: number; maxVideos: number }>({ maxImages: 5, maxVideos: 0 });
     const [hasActiveSub, setHasActiveSub] = useState(true); // assume true until checked
+    const freeMode = useFreeMode();
 
     // Load venue data
     useEffect(() => {
@@ -293,7 +296,11 @@ export default function EditVenuePage() {
 
                 // Fetch plan limits & subscription status
                 const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
+                if (freeMode) {
+                    // Free platform: no plan needed, no media limits
+                    setHasActiveSub(true);
+                    setPlanLimits({ maxImages: Infinity, maxVideos: Infinity });
+                } else if (user) {
                     const { data: sub } = await supabase
                         .from('user_subscriptions')
                         .select('*, subscription_plans(*)')
@@ -327,7 +334,7 @@ export default function EditVenuePage() {
         };
 
         if (id) fetchVenue();
-    }, [id]);
+    }, [id, freeMode]);
 
     const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.length) return;
@@ -708,7 +715,7 @@ export default function EditVenuePage() {
         <div className="space-y-6">
             {/* Images Section */}
             <SectionCard
-                title={`${te('photos_title')} (${formData.images.length}/${planLimits.maxImages})`}
+                title={`${te('photos_title')} (${formData.images.length}/${formatLimit(planLimits.maxImages)})`}
                 description={te('photos_desc')}
                 action={
                     <label className="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg cursor-pointer hover:bg-primary-700 transition-colors flex items-center gap-2">
@@ -768,7 +775,7 @@ export default function EditVenuePage() {
 
             {/* Videos Section */}
             <SectionCard
-                title={`${te('videos_title')} (${videos.length}/${planLimits.maxVideos})`}
+                title={`${te('videos_title')} (${videos.length}/${formatLimit(planLimits.maxVideos)})`}
                 description={te('videos_desc')}
                 action={
                     <label className={`px-4 py-2 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${

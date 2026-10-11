@@ -8,6 +8,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { Link } from '@/i18n/navigation';
 import type { UserSubscriptionSummary } from '@/lib/owner-billing';
 import BillingSettingsSection from './BillingSettingsSection';
+import { useFreeMode } from '@/components/PlatformModeProvider';
 
 interface Profile {
     id: string;
@@ -59,6 +60,7 @@ type Tab = 'profile' | 'billing';
 export default function SettingsClient({ profile, subscription, plans, receipts, settings, usage }: SettingsClientProps) {
     const supabase = createClient();
     const { t, language } = useLanguage();
+    const freeMode = useFreeMode();
     const [isLoading, setIsLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [success, setSuccess] = useState('');
@@ -321,13 +323,20 @@ export default function SettingsClient({ profile, subscription, plans, receipts,
                     {/* Billing Tab */}
                     {activeTab === 'billing' && (
                         <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25 }}>
-                            <BillingSettingsSection
-                                userId={profile?.id || ''}
-                                plans={plans}
-                                subscription={subscription}
-                                receipts={receipts}
-                                settings={settings}
-                            />
+                            {freeMode ? (
+                                <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
+                                    <h3 className="text-base font-semibold text-green-800">{t('settings.billing.free_mode_title')}</h3>
+                                    <p className="mt-1 text-sm text-green-700">{t('settings.billing.free_mode_desc')}</p>
+                                </div>
+                            ) : (
+                                <BillingSettingsSection
+                                    userId={profile?.id || ''}
+                                    plans={plans}
+                                    subscription={subscription}
+                                    receipts={receipts}
+                                    settings={settings}
+                                />
+                            )}
                         </motion.div>
                     )}
                 </motion.div>

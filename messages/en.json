@@ -347,7 +347,12 @@
             "direct": "Direct contact with owners",
             "secure": "Secure booking",
             "support": "Customer support"
-        }
+        },
+        "tab_password": "Email & password",
+        "tab_code": "Email code",
+        "sign_in_btn": "Sign in",
+        "send_code_btn": "Send me a code",
+        "code_hint": "We'll email you a one-time code. No password needed."
     },
     "Register": {
         "brand": "Ahjaz Liqaati",
@@ -364,7 +369,9 @@
             "calendar": "Integrated calendar",
             "payments": "Secure payments",
             "analytics": "Performance analytics"
-        }
+        },
+        "create_btn": "Create account",
+        "password_hint": "At least 8 characters. We will email you a code to confirm your address."
     },
     "dashboard": {
         "welcome": {
@@ -392,6 +399,10 @@
             "inquiries_desc": "View and respond to customer inquiries",
             "settings_title": "Settings",
             "settings_desc": "Update your profile and preferences"
+        },
+        "free_mode": {
+            "title": "The platform is free right now",
+            "desc": "All features are unlocked: unlimited venues, photos and videos, with no pack or payment needed."
         }
     },
     "Admin": {
@@ -510,7 +521,39 @@
             "approve_success": "User approved successfully",
             "reject": "Reject",
             "reject_success": "User rejected",
-            "view": "View Profile"
+            "view": "View Profile",
+            "create": {
+                "button": "Create account",
+                "title": "Create a venue account",
+                "subtitle": "The account is verified right away. No email code needed.",
+                "full_name": "Owner name",
+                "business_name": "Venue / business name",
+                "phone": "Phone",
+                "email": "Email",
+                "password": "Password",
+                "generate": "Generate",
+                "password_hint": "At least 8 characters. Share it with the venue owner; they can sign in immediately.",
+                "plan": "Activate a pack (optional)",
+                "no_plan": "No pack",
+                "plan_hint": "Activates the pack now for its full duration. Not needed while the platform is in free mode.",
+                "verified_note": "This account is created as verified and active. The owner signs in with this email and password, no OTP.",
+                "submit": "Create account",
+                "creating": "Creating...",
+                "success_title": "Account created",
+                "success_desc": "Send these credentials to the venue owner. They can sign in now.",
+                "copy": "Copy credentials",
+                "copied": "Copied!",
+                "another": "Create another",
+                "done": "Done",
+                "toast_created": "Venue account created",
+                "errors": {
+                    "invalid_email": "Enter a valid email address.",
+                    "password_too_short": "Password must be at least 8 characters.",
+                    "email_exists": "An account with this email already exists.",
+                    "failed": "Could not create the account. Please try again.",
+                    "Unauthorized": "Your admin session has expired. Sign in again."
+                }
+            }
         },
         "inquiries": {
             "title": "Inquiries",
@@ -532,5 +575,30 @@
         "no_subscription_title": "Subscription Required",
         "no_subscription_desc": "An active subscription is required to access this page. Please go to Settings to choose a pack and upload your payment receipt.",
         "no_subscription_go_settings": "Go to Settings"
+    },
+    "Auth": {
+        "email": "Email",
+        "password": "Password",
+        "full_name": "Full name",
+        "or": "or",
+        "code_title": "Check your email",
+        "code_sent": "We sent a verification code to",
+        "code_label": "Verification code",
+        "verify_btn": "Verify and continue",
+        "verifying": "Verifying...",
+        "resend_btn": "Resend code",
+        "resend_in": "Resend in {seconds}s",
+        "code_resent": "A new code has been sent.",
+        "change_email": "Use another email",
+        "errors": {
+            "invalid_credentials": "Wrong email or password.",
+            "email_not_confirmed": "Please confirm your email first.",
+            "invalid_code": "This code is wrong or has expired. Request a new one.",
+            "no_account": "No account found with this email. Register first or contact the admin.",
+            "rate_limit": "Too many attempts. Please wait a few minutes and try again.",
+            "weak_password": "Password must be at least 8 characters.",
+            "email_exists": "This email is already registered. Please sign in.",
+            "generic": "Something went wrong. Please try again."
+        }
     }
 }

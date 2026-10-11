@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { detectPreferredLocale } from '@/i18n/locale-utils';
+import { FREE_MODE_SETTING_KEY } from '@/lib/platform-mode';
 
 /**
  * Verifies the current session user is an admin, then returns both:
@@ -165,7 +166,7 @@ export async function updatePlatformSetting(formData: FormData) {
 
     const admin = await getAdminClient();
     if (!admin) return { error: 'Unauthorized' };
-    const { adminDb } = admin;
+    const { adminDb, user } = admin;
 
     try {
         const { error } = await adminDb
@@ -173,6 +174,17 @@ export async function updatePlatformSetting(formData: FormData) {
             .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 
         if (error) throw error;
+
+        if (key === FREE_MODE_SETTING_KEY) {
+            // Platform-wide switch: keep an audit trail and refresh every owner dashboard
+            await adminDb.from('admin_logs').insert({
+                admin_id: user.id,
+                action: value === 'true' ? 'enabled_free_mode' : 'disabled_free_mode',
+                entity_type: 'platform',
+                details: { key, value },
+            });
+            revalidatePath('/[locale]/dashboard', 'layout');
+        }
 
         revalidatePath('/admin/settings');
         return { success: true };
@@ -363,5 +375,121 @@ export async function toggleVenueFeatured(formData: FormData) {
     } catch (error: unknown) {
         console.error('Error toggling venue featured status:', error);
         return { error: error instanceof Error ? error.message : 'Failed to update venue' };
+    }
+}
+
+export interface CreatedVenueAccount {
+    id: string;
+    full_name: string;
+    email: string;
+    role: string;
+    status: 'pending' | 'active' | 'rejected';
+    created_at: string;
+}
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * Admin creates a venue-owner account with email + password.
+ * The account is created already verified (email_confirm: true), so the venue
+ * can sign in right away with no OTP / confirmation email, and its profile is
+ * set to an active venue owner. Optionally activates a pack for the account.
+ */
+export async function createVenueAccount(
+    formData: FormData
+): Promise<{ success?: boolean; error?: string; user?: CreatedVenueAccount }> {
+    const email = String(formData.get('email') || '').trim().toLowerCase();
+    const password = String(formData.get('password') || '');
+    const fullName = String(formData.get('fullName') || '').trim();
+    const businessName = String(formData.get('businessName') || '').trim();
+    const phone = String(formData.get('phone') || '').trim();
+    const planId = String(formData.get('planId') || '').trim();
+
+    // Error codes are translated client-side (Admin.users.create.errors.*)
+    if (!EMAIL_PATTERN.test(email)) return { error: 'invalid_email' };
+    if (password.length < MIN_PASSWORD_LENGTH) return { error: 'password_too_short' };
+
+    const admin = await getAdminClient();
+    if (!admin) return { error: 'Unauthorized' };
+    const { adminDb, user } = admin;
+
+    const { data: created, error: createError } = await adminDb.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName || null, name: fullName || null, created_by_admin: true },
+    });
+
+    if (createError || !created?.user) {
+        if (createError?.code === 'email_exists' || /already (been )?registered|already exists/i.test(createError?.message || '')) {
+            return { error: 'email_exists' };
+        }
+        console.error('Error creating venue account:', createError);
+        return { error: createError?.message || 'Failed to create account' };
+    }
+
+    const newUserId = created.user.id;
+
+    try {
+        // The on_auth_user_created trigger inserts the profile; the upsert makes it an active venue owner either way.
+        const { data: profile, error: profileError } = await adminDb
+            .from('profiles')
+            .upsert({
+                id: newUserId,
+                email,
+                full_name: fullName || null,
+                business_name: businessName || null,
+                phone: phone || null,
+                role: 'venue_owner',
+                status: 'active',
+            }, { onConflict: 'id' })
+            .select('id, full_name, email, role, status, created_at')
+            .single();
+
+        if (profileError) throw profileError;
+
+        if (planId) {
+            const { data: plan, error: planError } = await adminDb
+                .from('subscription_plans')
+                .select('id, duration_months')
+                .eq('id', planId)
+                .single();
+            if (planError) throw planError;
+
+            const now = new Date();
+            const expiresAt = new Date(now);
+            expiresAt.setMonth(expiresAt.getMonth() + (plan.duration_months || 1));
+
+            const { error: subscriptionError } = await adminDb
+                .from('user_subscriptions')
+                .insert({
+                    user_id: newUserId,
+                    plan_id: plan.id,
+                    status: 'active',
+                    started_at: now.toISOString(),
+                    expires_at: expiresAt.toISOString(),
+                });
+            if (subscriptionError) throw subscriptionError;
+        }
+
+        await adminDb.from('admin_logs').insert({
+            admin_id: user.id,
+            action: 'created_venue_account',
+            entity_type: 'user',
+            entity_id: newUserId,
+            details: { email, plan_id: planId || null },
+        });
+
+        revalidatePath('/admin/users');
+        return { success: true, user: profile as CreatedVenueAccount };
+    } catch (error: unknown) {
+        // Roll back the half-created account so the admin can simply retry with the same email
+        console.error('Error setting up venue account:', error);
+        await adminDb.auth.admin.deleteUser(newUserId);
+        const message = error instanceof Error
+            ? error.message
+            : (error as { message?: string })?.message || 'Failed to create account';
+        return { error: message };
     }
 }

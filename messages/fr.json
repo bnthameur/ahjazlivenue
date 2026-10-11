@@ -347,7 +347,12 @@
             "direct": "Contact direct avec les propriétaires",
             "secure": "Réservation sécurisée",
             "support": "Support client"
-        }
+        },
+        "tab_password": "E-mail et mot de passe",
+        "tab_code": "Code par e-mail",
+        "sign_in_btn": "Se connecter",
+        "send_code_btn": "Recevoir un code",
+        "code_hint": "Nous vous envoyons un code à usage unique par e-mail. Aucun mot de passe nécessaire."
     },
     "Register": {
         "brand": "Ahjaz Liqaati",
@@ -364,7 +369,9 @@
             "calendar": "Calendrier intégré",
             "payments": "Paiements sécurisés",
             "analytics": "Analyses de performance"
-        }
+        },
+        "create_btn": "Créer mon compte",
+        "password_hint": "Au moins 8 caractères. Nous vous enverrons un code pour confirmer votre adresse."
     },
     "dashboard": {
         "welcome": {
@@ -392,6 +399,10 @@
             "inquiries_desc": "Consultez et répondez aux demandes des clients",
             "settings_title": "Paramètres",
             "settings_desc": "Mettez à jour votre profil et vos préférences"
+        },
+        "free_mode": {
+            "title": "La plateforme est gratuite pour le moment",
+            "desc": "Toutes les fonctionnalités sont débloquées : salles, photos et vidéos illimitées, sans pack ni paiement."
         }
     },
     "Admin": {
@@ -510,7 +521,39 @@
             "approve_success": "Utilisateur approuvé avec succès",
             "reject": "Rejeter",
             "reject_success": "Utilisateur rejeté",
-            "view": "Voir le Profil"
+            "view": "Voir le Profil",
+            "create": {
+                "button": "Créer un compte",
+                "title": "Créer un compte salle",
+                "subtitle": "Le compte est vérifié immédiatement, sans code par e-mail.",
+                "full_name": "Nom du propriétaire",
+                "business_name": "Nom de la salle / entreprise",
+                "phone": "Téléphone",
+                "email": "E-mail",
+                "password": "Mot de passe",
+                "generate": "Générer",
+                "password_hint": "Au moins 8 caractères. Transmettez-le au propriétaire : il peut se connecter tout de suite.",
+                "plan": "Activer un pack (optionnel)",
+                "no_plan": "Aucun pack",
+                "plan_hint": "Active le pack maintenant pour toute sa durée. Inutile tant que la plateforme est en mode gratuit.",
+                "verified_note": "Ce compte est créé vérifié et actif. Le propriétaire se connecte avec cet e-mail et ce mot de passe, sans OTP.",
+                "submit": "Créer le compte",
+                "creating": "Création...",
+                "success_title": "Compte créé",
+                "success_desc": "Envoyez ces identifiants au propriétaire de la salle. Il peut se connecter maintenant.",
+                "copy": "Copier les identifiants",
+                "copied": "Copié !",
+                "another": "Créer un autre",
+                "done": "Terminé",
+                "toast_created": "Compte salle créé",
+                "errors": {
+                    "invalid_email": "Saisissez une adresse e-mail valide.",
+                    "password_too_short": "Le mot de passe doit contenir au moins 8 caractères.",
+                    "email_exists": "Un compte avec cet e-mail existe déjà.",
+                    "failed": "Impossible de créer le compte. Veuillez réessayer.",
+                    "Unauthorized": "Votre session admin a expiré. Reconnectez-vous."
+                }
+            }
         },
         "inquiries": {
             "title": "Demandes",
@@ -532,5 +575,30 @@
         "no_subscription_title": "Abonnement Requis",
         "no_subscription_desc": "Un abonnement actif est requis pour accéder à cette page. Veuillez aller dans Paramètres pour choisir un pack et téléverser votre reçu.",
         "no_subscription_go_settings": "Aller aux Paramètres"
+    },
+    "Auth": {
+        "email": "E-mail",
+        "password": "Mot de passe",
+        "full_name": "Nom complet",
+        "or": "ou",
+        "code_title": "Vérifiez vos e-mails",
+        "code_sent": "Nous avons envoyé un code de vérification à",
+        "code_label": "Code de vérification",
+        "verify_btn": "Vérifier et continuer",
+        "verifying": "Vérification...",
+        "resend_btn": "Renvoyer le code",
+        "resend_in": "Renvoyer dans {seconds}s",
+        "code_resent": "Un nouveau code a été envoyé.",
+        "change_email": "Utiliser un autre e-mail",
+        "errors": {
+            "invalid_credentials": "E-mail ou mot de passe incorrect.",
+            "email_not_confirmed": "Veuillez d'abord confirmer votre e-mail.",
+            "invalid_code": "Ce code est incorrect ou a expiré. Demandez-en un nouveau.",
+            "no_account": "Aucun compte avec cet e-mail. Inscrivez-vous ou contactez l'administrateur.",
+            "rate_limit": "Trop de tentatives. Patientez quelques minutes puis réessayez.",
+            "weak_password": "Le mot de passe doit contenir au moins 8 caractères.",
+            "email_exists": "Cet e-mail est déjà inscrit. Veuillez vous connecter.",
+            "generic": "Une erreur s'est produite. Veuillez réessayer."
+        }
     }
 }
