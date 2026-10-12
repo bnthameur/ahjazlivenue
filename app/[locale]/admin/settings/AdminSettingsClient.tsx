@@ -249,7 +249,7 @@ export default function AdminSettingsClient({ settings, venues, stats }: AdminSe
                                         onClick={() => setSlickpayKeyVisible(v => !v)}
                                         className="absolute inset-y-0 right-2 flex items-center text-slate-400 hover:text-slate-600"
                                     >
-                                        <Emoji name={slickpayKeyVisible ? 'eye-with-line' : 'eyes'} width={16} />
+                                        <Emoji name={slickpayKeyVisible ? 'see-no-evil-monkey' : 'eyes'} width={16} />
                                     </button>
                                 </div>
                                 <button

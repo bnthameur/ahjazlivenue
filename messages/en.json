@@ -54,7 +54,7 @@
         "send_inquiry": "Send Inquiry",
         "inquiry_sent": "Inquiry Sent!",
         "inquiry_error": "Failed to send inquiry.",
-        "inquiry_rate_limit": "Please wait {{seconds}} seconds before sending another inquiry.",
+        "inquiry_rate_limit": "Please wait {seconds} seconds before sending another inquiry.",
         "name": "Name",
         "email": "Email",
         "phone": "Phone",
@@ -471,7 +471,7 @@
         },
         "venues": {
             "title": "Venues Management",
-            "no_venues": "No {{status}} venues found.",
+            "no_venues": "No {status} venues found.",
             "price": "Price",
             "capacity": "Capacity",
             "guests": "guests",
@@ -516,7 +516,7 @@
         },
         "users": {
             "title": "Users Management",
-            "no_users": "No {{status}} users found.",
+            "no_users": "No {status} users found.",
             "approve": "Approve",
             "approve_success": "User approved successfully",
             "reject": "Reject",
@@ -598,7 +598,8 @@
             "rate_limit": "Too many attempts. Please wait a few minutes and try again.",
             "weak_password": "Password must be at least 8 characters.",
             "email_exists": "This email is already registered. Please sign in.",
-            "generic": "Something went wrong. Please try again."
+            "generic": "Something went wrong. Please try again.",
+            "login_disabled": "Email login is not enabled yet. Please contact the admin."
         }
     }
 }

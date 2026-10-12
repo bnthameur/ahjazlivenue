@@ -54,7 +54,7 @@
         "send_inquiry": "Envoyer une Demande",
         "inquiry_sent": "Demande Envoyée !",
         "inquiry_error": "Échec de l'envoi de la demande.",
-        "inquiry_rate_limit": "Veuillez attendre {{seconds}} secondes avant d'envoyer une autre demande.",
+        "inquiry_rate_limit": "Veuillez attendre {seconds} secondes avant d'envoyer une autre demande.",
         "name": "Nom",
         "email": "E-mail",
         "phone": "Téléphone",
@@ -471,7 +471,7 @@
         },
         "venues": {
             "title": "Gestion des Salles",
-            "no_venues": "Aucune salle {{status}} trouvée.",
+            "no_venues": "Aucune salle {status} trouvée.",
             "price": "Prix",
             "capacity": "Capacité",
             "guests": "invités",
@@ -516,7 +516,7 @@
         },
         "users": {
             "title": "Gestion des Utilisateurs",
-            "no_users": "Aucun utilisateur {{status}} trouvé.",
+            "no_users": "Aucun utilisateur {status} trouvé.",
             "approve": "Approuver",
             "approve_success": "Utilisateur approuvé avec succès",
             "reject": "Rejeter",
@@ -598,7 +598,8 @@
             "rate_limit": "Trop de tentatives. Patientez quelques minutes puis réessayez.",
             "weak_password": "Le mot de passe doit contenir au moins 8 caractères.",
             "email_exists": "Cet e-mail est déjà inscrit. Veuillez vous connecter.",
-            "generic": "Une erreur s'est produite. Veuillez réessayer."
+            "generic": "Une erreur s'est produite. Veuillez réessayer.",
+            "login_disabled": "La connexion par e-mail n'est pas encore activée. Contactez l'administrateur."
         }
     }
 }

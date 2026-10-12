@@ -64,7 +64,7 @@ function LoginContent() {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
 
         if (signInError) {
-            const key = authErrorKey(signInError, 'invalid_credentials');
+            const key = authErrorKey(signInError);
             if (key === 'email_not_confirmed') {
                 // Self-registered account that never confirmed its email: send a fresh code and verify it here
                 await supabase.auth.resend({ type: 'signup', email: normalizedEmail, options: { emailRedirectTo: AUTH_CALLBACK_URL } });

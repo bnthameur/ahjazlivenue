@@ -449,7 +449,7 @@ function CreateAccountModal({ plans, onClose, onCreated }: CreateAccountModalPro
                                         className="absolute inset-y-0 right-2 flex items-center text-slate-400 hover:text-slate-600"
                                         aria-label={showPassword ? 'Hide password' : 'Show password'}
                                     >
-                                        <Emoji name={showPassword ? 'eye-with-line' : 'eyes'} width={16} />
+                                        <Emoji name={showPassword ? 'see-no-evil-monkey' : 'eyes'} width={16} />
                                     </button>
                                 </div>
                                 <button
