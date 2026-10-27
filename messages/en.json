@@ -601,5 +601,17 @@
             "generic": "Something went wrong. Please try again.",
             "login_disabled": "Email login is not enabled yet. Please contact the admin."
         }
+    },
+    "Listings": {
+        "type": "Listing type",
+        "photos_optional": "Photos are optional: add photos of your past work or of yourself, or leave it empty.",
+        "admin_new_title": "New listing for this user",
+        "add_listing": "Add listing",
+        "edit": "Edit",
+        "delete": "Delete",
+        "deleting": "Deleting…",
+        "delete_user": "Delete user",
+        "confirm_delete_user": "Permanently delete {name} with all their listings and subscriptions? This cannot be undone.",
+        "confirm_delete_listing": "Permanently delete the listing \"{name}\"?"
     }
 }

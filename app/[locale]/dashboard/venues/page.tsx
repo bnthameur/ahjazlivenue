@@ -9,6 +9,7 @@ import { useLanguage } from '@/components/LanguageProvider';
 import { SubscriptionRequiredBlock } from '@/app/[locale]/dashboard/DashboardLayout';
 import { useFreeMode } from '@/components/PlatformModeProvider';
 import { Emoji } from 'react-apple-emojis';
+import { getCategoryLabel } from '@/lib/listing-types';
 
 type VenueCard = {
     id: string;
@@ -49,7 +50,7 @@ const statusColors = {
 
 export default function VenuesPage() {
     const supabase = createClient();
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
     const freeMode = useFreeMode();
     const searchParams = useSearchParams();
     const [venues, setVenues] = useState<VenueCard[]>([]);
@@ -233,7 +234,7 @@ export default function VenuesPage() {
                                             <span><Emoji name="round-pushpin" width={14} /></span> {venue.location || t('venues.no_location')}
                                         </span>
                                         <span className="flex items-center gap-1">
-                                            <span><Emoji name="label" width={14} /></span> {venue.category || t('venues.uncategorized')}
+                                            <span><Emoji name="label" width={14} /></span> {venue.category ? getCategoryLabel(venue.category, language) : t('venues.uncategorized')}
                                         </span>
                                     </div>
 

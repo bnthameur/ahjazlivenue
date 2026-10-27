@@ -4,6 +4,9 @@ import { Link } from '@/i18n/navigation';
 import { updateUserStatus, updateReceiptStatus } from '../../actions';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { getCategoryLabel } from '@/lib/listing-types';
+import { DeleteUserButton, DeleteVenueButton } from '@/components/admin/AdminDeleteButtons';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +43,8 @@ function ReceiptStatusBadge({ status }: { status: string }) {
 
 export default async function AdminUserDetailPage({ params }: PageProps) {
     const { id } = await params;
+    const locale = await getLocale();
+    const tl = await getTranslations('Listings');
     const cookieStore = await cookies();
     const supabase = createClient(cookieStore);
 
@@ -55,7 +60,7 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
     // Fetch owned venues
     const { data: venues } = await supabase
         .from('venues')
-        .select('id, title, name, location, status, images, created_at, is_featured')
+        .select('id, title, name, location, category, status, images, created_at, is_featured')
         .eq('owner_id', id)
         .order('created_at', { ascending: false });
 
@@ -205,6 +210,9 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
                                     Reject Account
                                 </button>
                             </form>
+                        )}
+                        {role !== 'admin' && (
+                            <DeleteUserButton userId={id} name={full_name || email || id} />
                         )}
                     </div>
                 </div>
@@ -403,7 +411,15 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
                                 🏛️
                                 Venues
                             </div>
-                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{venues?.length || 0} total</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full">{venues?.length || 0} total</span>
+                                <Link
+                                    href={`/admin/users/${id}/venues/new`}
+                                    className="text-xs px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors"
+                                >
+                                    + {tl('add_listing')}
+                                </Link>
+                            </div>
                         </div>
                         <div className="divide-y divide-slate-100">
                             {!venues || venues.length === 0 ? (
@@ -420,7 +436,9 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
                                         )}
                                         <div className="flex-1 min-w-0">
                                             <p className="font-semibold text-slate-900 truncate">{venue.title || venue.name}</p>
-                                            <p className="text-xs text-slate-500 truncate">{venue.location}</p>
+                                            <p className="text-xs text-slate-500 truncate">
+                                                {[getCategoryLabel(venue.category, locale), venue.location].filter(Boolean).join(' · ')}
+                                            </p>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
                                             <span className={`text-xs px-2 py-1 rounded-full font-medium ${
@@ -436,6 +454,13 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
                                             >
                                                 View
                                             </Link>
+                                            <Link
+                                                href={`/admin/venues/${venue.id}/edit`}
+                                                className="text-xs text-slate-600 hover:text-slate-900 font-medium"
+                                            >
+                                                {tl('edit')}
+                                            </Link>
+                                            <DeleteVenueButton venueId={venue.id} name={venue.title || venue.name || ''} />
                                         </div>
                                     </div>
                                 ))

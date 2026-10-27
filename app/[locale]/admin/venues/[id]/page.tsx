@@ -151,6 +151,13 @@ export default async function AdminVenueDetailPage({ params }: PageProps) {
                                 Reject
                             </Link>
                         )}
+                        <Link
+                            href={`/admin/venues/${id}/edit`}
+                            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        >
+                            ✏️
+                            Edit
+                        </Link>
                     </div>
                 </div>
             </div>

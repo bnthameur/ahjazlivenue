@@ -299,6 +299,44 @@ export async function updateReceiptStatus(formData: FormData): Promise<void> {
     }
 }
 
+type AdminDb = ReturnType<typeof createAdminClient>;
+
+/** Deletes a venue and every row that references it. Throws on failure. */
+async function deleteVenueCascade(adminDb: AdminDb, venueId: string) {
+    // Delete all FK-dependent rows first, in dependency order.
+    // Each step is awaited individually so errors are not swallowed.
+
+    const { error: analyticsError } = await adminDb
+        .from('analytics')
+        .delete()
+        .eq('venue_id', venueId);
+    if (analyticsError) console.error('analytics cleanup error:', analyticsError.message);
+
+    const { error: mediaError } = await adminDb
+        .from('venue_media')
+        .delete()
+        .eq('venue_id', venueId);
+    if (mediaError) throw new Error(`venue_media cleanup failed: ${mediaError.message}`);
+
+    const { error: inquiriesError } = await adminDb
+        .from('inquiries')
+        .delete()
+        .eq('venue_id', venueId);
+    if (inquiriesError) throw new Error(`inquiries cleanup failed: ${inquiriesError.message}`);
+
+    const { error: contactError } = await adminDb
+        .from('contact_inquiries')
+        .delete()
+        .eq('venue_id', venueId);
+    if (contactError) throw new Error(`contact_inquiries cleanup failed: ${contactError.message}`);
+
+    const { error: venueError } = await adminDb
+        .from('venues')
+        .delete()
+        .eq('id', venueId);
+    if (venueError) throw new Error(`venues delete failed: ${venueError.message}`);
+}
+
 export async function deleteVenue(formData: FormData): Promise<{ success?: boolean; error?: string }> {
     const venueId = formData.get('venueId') as string;
     if (!venueId) return { error: 'Venue ID is required' };
@@ -309,45 +347,160 @@ export async function deleteVenue(formData: FormData): Promise<{ success?: boole
     const { adminDb } = admin;
 
     try {
-        // Delete all FK-dependent rows first, in dependency order.
-        // Each step is awaited individually so errors are not swallowed.
-
-        const { error: analyticsError } = await adminDb
-            .from('analytics')
-            .delete()
-            .eq('venue_id', venueId);
-        if (analyticsError) console.error('analytics cleanup error:', analyticsError.message);
-
-        const { error: mediaError } = await adminDb
-            .from('venue_media')
-            .delete()
-            .eq('venue_id', venueId);
-        if (mediaError) throw new Error(`venue_media cleanup failed: ${mediaError.message}`);
-
-        const { error: inquiriesError } = await adminDb
-            .from('inquiries')
-            .delete()
-            .eq('venue_id', venueId);
-        if (inquiriesError) throw new Error(`inquiries cleanup failed: ${inquiriesError.message}`);
-
-        const { error: contactError } = await adminDb
-            .from('contact_inquiries')
-            .delete()
-            .eq('venue_id', venueId);
-        if (contactError) throw new Error(`contact_inquiries cleanup failed: ${contactError.message}`);
-
-        // Now delete the venue itself.
-        const { error: venueError } = await adminDb
-            .from('venues')
-            .delete()
-            .eq('id', venueId);
-        if (venueError) throw new Error(`venues delete failed: ${venueError.message}`);
-
+        await deleteVenueCascade(adminDb, venueId);
         revalidatePath('/admin/venues');
+        revalidatePath('/admin/users');
         return { success: true };
     } catch (error: unknown) {
         console.error('Error deleting venue:', error);
         return { error: error instanceof Error ? error.message : 'Failed to delete venue' };
+    }
+}
+
+// Fields an admin may set when creating or editing a listing for a user.
+const ADMIN_VENUE_FIELDS = [
+    'name', 'slug', 'title', 'description', 'category', 'location', 'wilaya', 'city', 'address',
+    'latitude', 'longitude', 'capacity_min', 'capacity_max', 'capacity',
+    'price_min', 'price_max', 'price', 'phone', 'whatsapp', 'contact_email',
+    'facebook_url', 'instagram_url', 'amenities', 'images', 'offers',
+] as const;
+
+function pickVenueFields(input: Record<string, unknown>) {
+    const out: Record<string, unknown> = {};
+    for (const key of ADMIN_VENUE_FIELDS) {
+        if (input[key] !== undefined) out[key] = input[key];
+    }
+    // An empty slug would collide with other listings; leave it to the database default.
+    if (!out.slug) delete out.slug;
+    return out;
+}
+
+/** Admin creates a listing owned by another user. It is published right away. */
+export async function adminCreateVenue(
+    ownerId: string,
+    input: Record<string, unknown>
+): Promise<{ id?: string; error?: string }> {
+    const admin = await getAdminClient();
+    if (!admin) return { error: 'Unauthorized' };
+    const { adminDb, user } = admin;
+
+    const fields = pickVenueFields(input);
+    if (!fields.name || !fields.description || !fields.phone) return { error: 'Missing required fields' };
+
+    const { data: owner } = await adminDb.from('profiles').select('id').eq('id', ownerId).maybeSingle();
+    if (!owner) return { error: 'User not found' };
+
+    const { data, error } = await adminDb
+        .from('venues')
+        .insert({ ...fields, owner_id: ownerId, status: 'published' })
+        .select('id')
+        .single();
+    if (error) return { error: error.message };
+
+    await adminDb.from('admin_logs').insert({
+        admin_id: user.id,
+        action: 'created_venue_for_user',
+        entity_type: 'venue',
+        entity_id: data.id,
+        details: { owner_id: ownerId, category: fields.category ?? null },
+    });
+
+    revalidatePath('/admin/venues');
+    revalidatePath(`/admin/users/${ownerId}`);
+    return { id: data.id };
+}
+
+/** Admin edits any listing. */
+export async function adminUpdateVenue(
+    venueId: string,
+    input: Record<string, unknown>
+): Promise<{ success?: boolean; error?: string }> {
+    const admin = await getAdminClient();
+    if (!admin) return { error: 'Unauthorized' };
+    const { adminDb, user } = admin;
+
+    const { error } = await adminDb.from('venues').update(pickVenueFields(input)).eq('id', venueId);
+    if (error) return { error: error.message };
+
+    await adminDb.from('admin_logs').insert({
+        admin_id: user.id,
+        action: 'updated_venue',
+        entity_type: 'venue',
+        entity_id: venueId,
+    });
+
+    revalidatePath('/admin/venues');
+    revalidatePath(`/admin/venues/${venueId}`);
+    return { success: true };
+}
+
+/**
+ * Permanently deletes a user account with all of its listings, subscriptions,
+ * receipts and notifications. Admin accounts (including your own) cannot be deleted here.
+ */
+export async function deleteUser(userId: string): Promise<{ success?: boolean; error?: string }> {
+    if (!userId) return { error: 'User ID is required' };
+
+    const admin = await getAdminClient();
+    if (!admin) return { error: 'Unauthorized' };
+    const { adminDb, user } = admin;
+
+    if (userId === user.id) return { error: 'You cannot delete your own account' };
+
+    const { data: target } = await adminDb
+        .from('profiles')
+        .select('id, email, role')
+        .eq('id', userId)
+        .maybeSingle();
+    if (!target) return { error: 'User not found' };
+    if (target.role === 'admin') return { error: 'Admin accounts cannot be deleted' };
+
+    try {
+        const { data: venues, error: venuesError } = await adminDb
+            .from('venues')
+            .select('id')
+            .eq('owner_id', userId);
+        if (venuesError) throw venuesError;
+
+        for (const venue of venues || []) {
+            await deleteVenueCascade(adminDb, venue.id);
+        }
+
+        // Remaining rows that point at the user
+        const cleanups = [
+            adminDb.from('contact_inquiries').delete().eq('owner_id', userId),
+            adminDb.from('user_subscriptions').delete().eq('user_id', userId),
+            adminDb.from('payment_receipts').delete().eq('user_id', userId),
+            adminDb.from('notifications').delete().eq('recipient_id', userId),
+            adminDb.from('notifications').delete().eq('sender_id', userId),
+        ];
+        for (const result of await Promise.all(cleanups)) {
+            if (result.error) throw result.error;
+        }
+
+        const { error: authError } = await adminDb.auth.admin.deleteUser(userId);
+        if (authError && !/not found/i.test(authError.message)) throw authError;
+
+        // The profile normally goes with the auth user (ON DELETE CASCADE); make sure.
+        await adminDb.from('profiles').delete().eq('id', userId);
+
+        await adminDb.from('admin_logs').insert({
+            admin_id: user.id,
+            action: 'deleted_user',
+            entity_type: 'user',
+            entity_id: userId,
+            details: { email: target.email, venues_deleted: venues?.length || 0 },
+        });
+
+        revalidatePath('/admin/users');
+        revalidatePath('/admin/venues');
+        return { success: true };
+    } catch (error: unknown) {
+        console.error('Error deleting user:', error);
+        const message = error instanceof Error
+            ? error.message
+            : (error as { message?: string })?.message || 'Failed to delete user';
+        return { error: message };
     }
 }
 

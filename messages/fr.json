@@ -601,5 +601,17 @@
             "generic": "Une erreur s'est produite. Veuillez réessayer.",
             "login_disabled": "La connexion par e-mail n'est pas encore activée. Contactez l'administrateur."
         }
+    },
+    "Listings": {
+        "type": "Type d'annonce",
+        "photos_optional": "Photos facultatives : ajoutez des photos de vos travaux ou de vous, ou laissez vide.",
+        "admin_new_title": "Nouvelle annonce pour cet utilisateur",
+        "add_listing": "Ajouter une annonce",
+        "edit": "Modifier",
+        "delete": "Supprimer",
+        "deleting": "Suppression…",
+        "delete_user": "Supprimer l'utilisateur",
+        "confirm_delete_user": "Supprimer définitivement {name} avec toutes ses annonces et abonnements ? Action irréversible.",
+        "confirm_delete_listing": "Supprimer définitivement l'annonce « {name} » ?"
     }
 }
