@@ -5,9 +5,16 @@ import { createClient } from '@/lib/supabase/client';
 import { Link } from '@/i18n/navigation';
 import { Emoji } from 'react-apple-emojis';
 import { useLanguage } from '@/components/LanguageProvider';
+import { LISTING_CATEGORIES } from '@/lib/listing-types';
+
+// Halls vs individual requests (jobs, DJs, services, rentals) are reviewed on separate pages
+const INDIVIDUAL_CATEGORIES = LISTING_CATEGORIES.filter((c) => c.group !== 'venue').map((c) => c.id);
+const HALLS_ONLY = `category.is.null,category.not.in.(${INDIVIDUAL_CATEGORIES.join(',')})`;
+const REQUESTS_LABEL: Record<string, string> = { fr: 'Demandes individuelles en attente', ar: 'طلبات الأفراد في الانتظار', en: 'Pending individual requests' };
 
 interface Stats {
     pendingVenues: number;
+    pendingRequests: number;
     approvedVenues: number;
     pendingUsers: number;
     activeUsers: number;
@@ -17,6 +24,7 @@ interface Stats {
 export default function AdminDashboard() {
     const [stats, setStats] = useState<Stats>({
         pendingVenues: 0,
+        pendingRequests: 0,
         approvedVenues: 0,
         pendingUsers: 0,
         activeUsers: 0,
@@ -24,7 +32,7 @@ export default function AdminDashboard() {
     });
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
-    const { t, dir } = useLanguage();
+    const { t, dir, language } = useLanguage();
 
     useEffect(() => {
         fetchStats();
@@ -37,15 +45,18 @@ export default function AdminDashboard() {
                 { count: approvedVenuesCount },
                 { count: pendingUsersCount },
                 { count: activeUsersCount },
+                { count: pendingRequestsCount },
             ] = await Promise.all([
-                supabase.from('venues').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-                supabase.from('venues').select('*', { count: 'exact', head: true }).in('status', ['approved', 'published']),
+                supabase.from('venues').select('*', { count: 'exact', head: true }).eq('status', 'pending').or(HALLS_ONLY),
+                supabase.from('venues').select('*', { count: 'exact', head: true }).in('status', ['approved', 'published']).or(HALLS_ONLY),
                 supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
                 supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+                supabase.from('venues').select('*', { count: 'exact', head: true }).eq('status', 'pending').in('category', INDIVIDUAL_CATEGORIES),
             ]);
 
             setStats({
                 pendingVenues: pendingVenuesCount || 0,
+                pendingRequests: pendingRequestsCount || 0,
                 approvedVenues: approvedVenuesCount || 0,
                 pendingUsers: pendingUsersCount || 0,
                 activeUsers: activeUsersCount || 0,
@@ -94,12 +105,21 @@ export default function AdminDashboard() {
             linkText: t('admin.stats.review_now'),
         },
         {
+            label: REQUESTS_LABEL[language] ?? REQUESTS_LABEL.fr,
+            count: stats.pendingRequests,
+            emoji: 'clipboard',
+            badge: t('admin.status.pending'),
+            color: 'orange',
+            href: '/admin/demandes',
+            linkText: t('admin.stats.review_now'),
+        },
+        {
             label: t('admin.stats.active_venues'),
             count: stats.approvedVenues,
             emoji: 'check-mark-button',
             badge: t('admin.status.active'),
             color: 'green',
-            href: '/admin/venues?status=approved',
+            href: '/admin/venues?status=published',
             linkText: t('admin.stats.view_all'),
         },
         {
