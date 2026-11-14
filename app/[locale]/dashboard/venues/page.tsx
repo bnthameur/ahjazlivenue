@@ -10,6 +10,7 @@ import { SubscriptionRequiredBlock } from '@/app/[locale]/dashboard/DashboardLay
 import { useFreeMode } from '@/components/PlatformModeProvider';
 import { Emoji } from 'react-apple-emojis';
 import { getCategoryLabel } from '@/lib/listing-types';
+import { publicListingUrl } from '@/lib/public-url';
 
 type VenueCard = {
     id: string;
@@ -263,13 +264,14 @@ export default function VenuesPage() {
                                             {t('venues.btn.edit')}
                                         </Link>
                                         {(venue.status === 'approved' || venue.status === 'published') && (
-                                            <Link
-                                                href={`/venues/${venue.slug || venue.id}`}
+                                            <a
+                                                href={publicListingUrl(venue.slug || venue.id, language)}
                                                 target="_blank"
+                                                rel="noopener noreferrer"
                                                 className="px-3 py-2 bg-primary-100 hover:bg-primary-200 text-primary-700 text-sm font-medium rounded-lg transition-colors"
                                             >
                                                 {t('venues.btn.view')}
-                                            </Link>
+                                            </a>
                                         )}
                                     </div>
                                 </div>

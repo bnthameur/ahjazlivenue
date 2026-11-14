@@ -62,10 +62,17 @@ const NotificationsIcon = () => (
     </svg>
 );
 
+const CalendarIcon = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+);
+
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Notifications', href: '/dashboard/notifications', icon: NotificationsIcon },
     { name: 'My Venues', href: '/dashboard/venues', icon: VenuesIcon },
+    { name: 'Calendar', href: '/dashboard/calendar', icon: CalendarIcon },
     { name: 'Inquiries', href: '/dashboard/inquiries', icon: InquiriesIcon },
     { name: 'Settings', href: '/dashboard/settings', icon: SettingsIcon },
 ];
@@ -260,6 +267,7 @@ export default function DashboardLayout({ user, profile, subscription, freeMode 
                                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
                                         else if (item.href === '/dashboard/notifications') labelKey = 'dashboard.nav.notifications';
                                         else if (item.href === '/dashboard/venues') labelKey = 'dashboard.nav.venues';
+                                        else if (item.href === '/dashboard/calendar') labelKey = 'dashboard.nav.calendar';
                                         else if (item.href === '/dashboard/inquiries') labelKey = 'dashboard.nav.inquiries';
                                         else if (item.href === '/dashboard/settings') labelKey = 'dashboard.nav.settings';
 
@@ -367,6 +375,7 @@ export default function DashboardLayout({ user, profile, subscription, freeMode 
                         if (item.href === '/dashboard') labelKey = 'dashboard.nav.home';
                         else if (item.href === '/dashboard/notifications') labelKey = 'dashboard.nav.notifications';
                         else if (item.href === '/dashboard/venues') labelKey = 'dashboard.nav.venues';
+                        else if (item.href === '/dashboard/calendar') labelKey = 'dashboard.nav.calendar';
                         else if (item.href === '/dashboard/inquiries') labelKey = 'dashboard.nav.inquiries';
                         else if (item.href === '/dashboard/settings') labelKey = 'dashboard.nav.settings';
 

@@ -22,6 +22,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
             .from('subscription_plans')
             .select('id, name, name_ar, name_fr, price_monthly, duration_months')
             .eq('is_active', true)
+            .eq('audience', 'venue')
             .order('price_monthly', { ascending: true }),
     ]);
 

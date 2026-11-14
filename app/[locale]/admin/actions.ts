@@ -646,3 +646,56 @@ export async function createVenueAccount(
         return { error: message };
     }
 }
+
+// ─── Individual requests (job seekers, DJs / camera, services, rentals) ─────────
+
+/**
+ * Approves (publishes) an individual request. When a plan is chosen, the listing
+ * gets that plan and expires after its duration; without a plan it never expires.
+ */
+export async function approveListingRequest(
+    venueId: string,
+    planId: string | null
+): Promise<{ success?: boolean; error?: string; expiresAt?: string | null }> {
+    const admin = await getAdminClient();
+    if (!admin) return { error: 'Unauthorized' };
+    const { adminDb } = admin;
+
+    let expiresAt: string | null = null;
+    if (planId) {
+        const { data: plan, error: planError } = await adminDb
+            .from('subscription_plans')
+            .select('id, duration_months')
+            .eq('id', planId)
+            .single();
+        if (planError || !plan) return { error: 'Plan not found' };
+        const d = new Date();
+        d.setMonth(d.getMonth() + (plan.duration_months || 1));
+        expiresAt = d.toISOString();
+    }
+
+    const { error } = await adminDb
+        .from('venues')
+        .update({ status: 'published', plan_id: planId, listing_expires_at: expiresAt, rejection_reason: null, approved_at: new Date().toISOString() })
+        .eq('id', venueId);
+    if (error) return { error: error.message };
+
+    revalidatePath('/admin/demandes');
+    return { success: true, expiresAt };
+}
+
+export async function setListingRequestStatus(
+    venueId: string,
+    status: 'pending' | 'rejected',
+    reason?: string
+): Promise<{ success?: boolean; error?: string }> {
+    const admin = await getAdminClient();
+    if (!admin) return { error: 'Unauthorized' };
+    const { error } = await admin.adminDb
+        .from('venues')
+        .update({ status, rejection_reason: status === 'rejected' ? (reason || null) : null })
+        .eq('id', venueId);
+    if (error) return { error: error.message };
+    revalidatePath('/admin/demandes');
+    return { success: true };
+}

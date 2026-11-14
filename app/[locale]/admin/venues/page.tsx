@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import AdminVenuesClient from './AdminVenuesClient';
+import { LISTING_CATEGORIES } from '@/lib/listing-types';
+
+const INDIVIDUAL_CATEGORIES = LISTING_CATEGORIES.filter((c) => c.group !== 'venue').map((c) => c.id);
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +18,8 @@ export default async function AdminVenuesPage({ searchParams }: PageProps) {
     const { data: venues, error } = await supabase
         .from('venues')
         .select('*, profiles(full_name, email, phone)')
+        // Individual requests (jobs, DJs, services, rentals) live in /admin/demandes
+        .or(`category.is.null,category.not.in.(${INDIVIDUAL_CATEGORIES.join(',')})`)
         .order('created_at', { ascending: false });
 
     if (error) {

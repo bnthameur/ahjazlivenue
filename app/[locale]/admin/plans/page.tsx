@@ -19,8 +19,17 @@ interface SubscriptionPlan {
     is_featured_allowed: boolean;
     is_active: boolean;
     duration_months: number;
+    audience: PlanAudience;
     created_at: string;
 }
+
+/** 'venue' = hall owners, 'individual' = job seekers, DJs / camera crews, extra services and rentals */
+type PlanAudience = 'venue' | 'individual';
+
+const AUDIENCES: { id: PlanAudience; label: string; hint: string }[] = [
+    { id: 'venue', label: 'Salles (propriétaires)', hint: 'Shown on the landing pricing section and used for owner subscriptions.' },
+    { id: 'individual', label: 'Individus (emploi, DJ, services, locations)', hint: 'Offered in the public request form; applied when you approve a request.' },
+];
 
 type PlanFormData = Omit<SubscriptionPlan, 'id' | 'created_at'>;
 
@@ -36,6 +45,7 @@ const DEFAULT_FORM: PlanFormData = {
     is_featured_allowed: false,
     is_active: true,
     duration_months: 1,
+    audience: 'venue',
 };
 
 // ─── Validation ───────────────────────────────────────────────────────────────
@@ -98,11 +108,12 @@ const XIcon = () => (
 
 interface PlanFormModalProps {
     plan: SubscriptionPlan | null; // null = create mode
+    defaultAudience: PlanAudience;
     onClose: () => void;
     onSaved: (plan: SubscriptionPlan) => void;
 }
 
-function PlanFormModal({ plan, onClose, onSaved }: PlanFormModalProps) {
+function PlanFormModal({ plan, defaultAudience, onClose, onSaved }: PlanFormModalProps) {
     const isEdit = plan !== null;
     const supabase = createClient();
 
@@ -120,8 +131,9 @@ function PlanFormModal({ plan, onClose, onSaved }: PlanFormModalProps) {
                 is_featured_allowed: plan.is_featured_allowed,
                 is_active: plan.is_active,
                 duration_months: plan.duration_months,
+                audience: plan.audience || 'venue',
             }
-            : DEFAULT_FORM
+            : { ...DEFAULT_FORM, audience: defaultAudience }
     );
 
     const [errors, setErrors] = useState<FormErrors>({});
@@ -158,6 +170,7 @@ function PlanFormModal({ plan, onClose, onSaved }: PlanFormModalProps) {
             is_featured_allowed: form.is_featured_allowed,
             is_active: form.is_active,
             duration_months: Number(form.duration_months),
+            audience: form.audience,
         };
 
         try {
@@ -223,6 +236,24 @@ function PlanFormModal({ plan, onClose, onSaved }: PlanFormModalProps) {
                                 {apiError}
                             </div>
                         )}
+
+                        {/* Audience */}
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-700 mb-1.5">Plan for</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {AUDIENCES.map((a) => (
+                                    <button
+                                        key={a.id}
+                                        type="button"
+                                        onClick={() => setField('audience', a.id)}
+                                        className={`text-start px-3 py-2.5 rounded-lg border text-sm transition-colors ${form.audience === a.id ? 'border-purple-400 bg-purple-50 text-purple-800 font-semibold' : 'border-slate-200 text-slate-600 hover:border-purple-200'}`}
+                                    >
+                                        {a.label}
+                                        <span className="block text-[11px] font-normal text-slate-500 mt-0.5">{a.hint}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
                         {/* Names */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -583,7 +614,9 @@ export default function AdminPlansPage() {
     const { dir } = useLanguage();
     const supabase = createClient();
 
-    const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+    const [allPlans, setPlans] = useState<SubscriptionPlan[]>([]);
+    const [audience, setAudience] = useState<PlanAudience>('venue');
+    const plans = allPlans.filter((p) => (p.audience || 'venue') === audience);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -730,7 +763,7 @@ export default function AdminPlansPage() {
                         </div>
                         Subscription Plans
                     </h1>
-                    <p className="text-slate-500 mt-1 text-sm">Manage pricing plans for venue owners</p>
+                    <p className="text-slate-500 mt-1 text-sm">Manage pricing plans for venue owners and individual providers</p>
                 </div>
 
                 <button
@@ -740,6 +773,22 @@ export default function AdminPlansPage() {
                     <PlusIcon />
                     Add Plan
                 </button>
+            </div>
+
+            {/* Audience tabs */}
+            <div className="flex gap-2 flex-wrap">
+                {AUDIENCES.map((a) => (
+                    <button
+                        key={a.id}
+                        onClick={() => setAudience(a.id)}
+                        className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${audience === a.id ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-slate-200 text-slate-600 hover:border-purple-300'}`}
+                    >
+                        {a.label}
+                        <span className={`ms-2 text-xs ${audience === a.id ? 'text-purple-100' : 'text-slate-400'}`}>
+                            {allPlans.filter((p) => (p.audience || 'venue') === a.id).length}
+                        </span>
+                    </button>
+                ))}
             </div>
 
             {/* Loading */}
@@ -828,6 +877,7 @@ export default function AdminPlansPage() {
             {showForm && (
                 <PlanFormModal
                     plan={editingPlan}
+                    defaultAudience={audience}
                     onClose={() => {
                         setShowForm(false);
                         setEditingPlan(null);

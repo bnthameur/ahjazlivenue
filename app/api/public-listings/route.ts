@@ -171,6 +171,17 @@ export async function POST(request: Request) {
     const photo = ownFile(body.photo);
     const gallery = (Array.isArray(body.gallery) ? body.gallery : []).map(ownFile).filter(Boolean).slice(0, MAX_FILES) as string[];
     const cvUrl = ownFile(body.cv);
+    const receiptUrl = ownFile(body.receipt);
+
+    // Individual providers pay: when the admin has active individual plans, one must be chosen
+    const { data: individualPlans } = await supabase
+        .from("subscription_plans")
+        .select("id")
+        .eq("audience", "individual")
+        .eq("is_active", true);
+    const planId = str(body.plan_id, 60);
+    const plan = (individualPlans || []).find((p: { id: string }) => p.id === planId);
+    if ((individualPlans || []).length > 0 && !plan) return json({ error: "plan_required" }, 400, origin);
 
     // Job seekers and DJs / camera crews must show who they are
     const needsPhoto = category.group === "job" || category.group === "artist";
@@ -222,6 +233,9 @@ export async function POST(request: Request) {
             amenities: [],
             offers: [],
             images,
+            plan_id: plan?.id ?? null,
+            payment_receipt_url: receiptUrl,
+            submitted_via: "public_form",
             status: "pending",
         })
         .select("id")
@@ -239,7 +253,7 @@ export async function POST(request: Request) {
             admins.map((a: { id: string }) => ({
                 recipient_id: a.id,
                 title: "طلب جديد من الموقع",
-                message: `${category.label.ar} — ${name} (${phone}). Demande à valider dans Annonces.`,
+                message: `${category.label.ar} — ${name} (${phone}). Demande à valider dans Demandes.`,
                 type: "info",
             }))
         );

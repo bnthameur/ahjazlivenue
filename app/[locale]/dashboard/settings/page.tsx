@@ -62,6 +62,7 @@ export default async function SettingsPage() {
             .from('subscription_plans')
             .select('id, name, name_ar, name_fr, price_monthly, price_yearly, duration_months, max_venues, max_images_per_venue, max_videos_per_venue')
             .eq('is_active', true)
+            .eq('audience', 'venue')
             .order('price_monthly', { ascending: true }),
         supabase
             .from('payment_receipts')
