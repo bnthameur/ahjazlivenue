@@ -4,7 +4,8 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import { Link } from '@/i18n/navigation';
 import { updateVenueStatus, deleteVenue, toggleVenueFeatured } from '../actions';
 import { Emoji } from 'react-apple-emojis';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { getCategoryLabel, getListingGroupId, getGroupLabel } from '@/lib/listing-types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,6 +21,13 @@ interface Venue {
     rejection_reason?: string;
     created_at: string;
     is_featured: boolean;
+    category?: string | null;
+    phone?: string | null;
+    whatsapp?: string | null;
+    website?: string | null;
+    instagram_url?: string | null;
+    facebook_url?: string | null;
+    tiktok_url?: string | null;
     profiles: {
         full_name: string;
         email: string;
@@ -176,6 +184,7 @@ function SearchIcon({ className }: { className?: string }) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export default function AdminVenuesClient({ initialVenues, statusFilter }: { initialVenues: Venue[]; statusFilter: string }) {
+    const locale = useLocale();
     const t = useTranslations('Admin');
     const [venues, setVenues] = useState(initialVenues);
     const [currentFilter, setCurrentFilter] = useState(statusFilter);
@@ -455,6 +464,11 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                                     )}
                                                 </div>
                                                 <p className="text-sm text-slate-500 truncate">{venue.location}</p>
+                                                {getListingGroupId(venue.category) !== 'venue' && (
+                                                    <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                        {getGroupLabel(getListingGroupId(venue.category), locale)} · {getCategoryLabel(venue.category, locale)}
+                                                    </span>
+                                                )}
                                             </div>
                                             {getStatusBadge(venue.status)}
                                         </div>
@@ -480,9 +494,21 @@ export default function AdminVenuesClient({ initialVenues, statusFilter }: { ini
                                             )}
                                         </div>
 
+                                        {getListingGroupId(venue.category) !== 'venue' && (venue.phone || venue.website || venue.instagram_url || venue.facebook_url || venue.tiktok_url) && (
+                                            <div className="mb-3 p-2.5 bg-indigo-50/50 rounded-lg border border-indigo-100 text-xs text-slate-600 flex flex-wrap gap-x-4 gap-y-1">
+                                                {venue.phone && <a href={`tel:${venue.phone}`} dir="ltr" className="font-medium hover:underline">📞 {venue.phone}</a>}
+                                                {venue.whatsapp && <a href={`https://wa.me/${venue.whatsapp}`} target="_blank" rel="noreferrer" dir="ltr" className="font-medium hover:underline">WhatsApp {venue.whatsapp}</a>}
+                                                {venue.website && <a href={venue.website} target="_blank" rel="noreferrer" className="font-semibold text-indigo-700 hover:underline">{getListingGroupId(venue.category) === 'job' ? 'CV' : 'Portfolio'} ↗</a>}
+                                                {venue.instagram_url && <a href={venue.instagram_url} target="_blank" rel="noreferrer" className="hover:underline">Instagram ↗</a>}
+                                                {venue.facebook_url && <a href={venue.facebook_url} target="_blank" rel="noreferrer" className="hover:underline">Facebook ↗</a>}
+                                                {venue.tiktok_url && <a href={venue.tiktok_url} target="_blank" rel="noreferrer" className="hover:underline">TikTok ↗</a>}
+                                                {venue.images?.length > 1 && <span>{venue.images.length} photos</span>}
+                                            </div>
+                                        )}
+
                                         <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-3">
                                             <div><span className="font-medium">{t('venues.price')}:</span> {venue.price ? `${venue.price} DZD` : t('venues.contact_price')}</div>
-                                            <div><span className="font-medium">{t('venues.capacity')}:</span> {venue.capacity} {t('venues.guests')}</div>
+                                            {getListingGroupId(venue.category) === 'venue' && <div><span className="font-medium">{t('venues.capacity')}:</span> {venue.capacity} {t('venues.guests')}</div>}
                                             <div><span className="font-medium">{t('venues.submitted')}:</span> {new Date(venue.created_at).toLocaleDateString()}</div>
                                         </div>
 
